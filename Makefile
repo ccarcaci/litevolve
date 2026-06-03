@@ -1,5 +1,4 @@
-# Makefile for db_migrations
-# SQLite migration runner — entry point: run_migration.ts
+# litevolve: SQLite migration runner
 
 BUN          := bun
 BIOME := bunx biome
@@ -103,8 +102,8 @@ ci_lint: ## Run Biome linter on src/
 	@echo "Running Biome linter..."
 	@$(BIOME) check $(SRC_DIR)/
 
-.PHONY: ci_build
-ci_build: ## Compile src/ with Bun without storing output (checks code is runnable)
+.PHONY: ci_check_build
+ci_check_build: ## Compile src/ with Bun without storing output (checks code is runnable)
 	@echo "Checking compilation..."
 	@BUILD_TMP=$$(mktemp -d); $(BUN) build $(SRC_DIR)/index.ts --target bun --outdir $$BUILD_TMP; EXIT=$$?; rm -rf $$BUILD_TMP; exit $$EXIT
 	@$(BUN) tsc --noEmit
@@ -120,6 +119,6 @@ ci_test: ## Run tests with Bun native test runner (e.g. make test test_name)
 	@$(BUN) test --isolate --parallel=4 $(if $(filter-out ci_test,$(MAKECMDGOALS)),--test-name-pattern=$(filter-out ci_test,$(MAKECMDGOALS))) $(SRC_DIR)/
 
 .PHONY: ci_fast
-ci_fast: ci_check_version ci_check_updates ci_lint ci_build ci_sec ## Run ci-check, ci-build, ci-test, ci-sec, and ci-updates in order
+ci_checks: ci_check_version ci_check_updates ci_lint ci_check_build ci_sec ## Run ci-check, ci-build, ci-test, ci-sec, and ci-updates in order
 	make ci_test
 	@echo "All CI checks passed!"
