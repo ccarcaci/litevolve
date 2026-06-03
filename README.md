@@ -17,11 +17,11 @@ Versioned SQLite migrations for Bun, Node, and Deno — usable as a library or a
 
 ---
 
-## What it does
+## what_it_does
 
 `litevolve` reads a directory of numbered SQL files (`{version}_name.sql`, `{version}_name.down.sql`, optional `{version}_name.seed.sql`) and applies them up or down against a SQLite database to reach a target schema version. Each step runs in a single `BEGIN IMMEDIATE` transaction so a failed seed rolls back its schema change too. The current schema version is tracked in SQLite's native `PRAGMA user_version`; a sticky `init_seeds` flag is recorded in an internal `_db_meta` table so seed behavior stays consistent across subsequent upgrades.
 
-## Install
+## install
 
 ```sh
 # Bun
@@ -39,14 +39,14 @@ deno add jsr:@litevolve/litevolve
 brew install litevolve
 ```
 
-## Library usage
+## library_usage
 
 ```ts
-import { litevolve } from "litevolve"
+import { migrate_db } from "litevolve"
 
 // Apply migrations up (or down) to reach version 2.
 // Returns the open Bun Database handle.
-const db = litevolve(
+const db = migrate_db(
   2,                    // apply_version: target schema version
   "./migrations",       // migrations_path: directory holding the .sql files
   "./data/birds.db",    // db_path: SQLite file (or ":memory:")
@@ -54,9 +54,9 @@ const db = litevolve(
 )
 ```
 
-The export lives at `src/index.ts:3`, the underlying signature at `src/migrate.ts:173`, and the error type at `src/migration_error.ts:1`.
+The signature lives at `src/migrate.ts:172` and the error type at `src/migration_error.ts:1`.
 
-## CLI usage
+## CLI_usage
 
 The CLI takes the same four inputs as named flags:
 
@@ -77,7 +77,7 @@ deno run --allow-read --allow-write npm:litevolve \
   --apply_version=2 --db_path=./data/birds.db --migrations_path=./migrations
 ```
 
-## Migration file conventions
+## migration_file_conventions
 
 Files in the migrations directory are validated by a strict regex:
 
@@ -112,11 +112,11 @@ Notes about the parser (see `src/migrate.ts:48`):
 - Line comments `-- …` are stripped after the split.
 - Down migrations never apply seeds. Each `.down.sql` is responsible for its own data cleanup before dropping columns or tables.
 
-## `init_seeds` semantics
+## `init_seeds`_semantics
 
 `init_seeds` is **sticky**: it is only honored when the database is at version 0 (fresh or fully rolled back). The chosen value is recorded in `_db_meta` and reused for every subsequent up-migration on the same database. Passing `--init_seeds` to a partially-migrated DB is silently ignored — this guarantees that a database either *consistently* has its seed rows or *consistently* does not. See the behavior contract in `src/migrate.test.ts` (the `init_seeds_*` tests).
 
-## Example: ornithology database
+## example_ornithology_database
 
 The `migrations/` directory in this repository ships a runnable three-version example modelling a bird-observation system:
 
@@ -154,16 +154,16 @@ make migrate_seeds DB_PATH=./birds.db VERSION=2
 sqlite3 ./birds.db "SELECT name, timezone FROM observation_sites;"
 ```
 
-## Development
+## contributing_guidelines
 
-```sh
-bun test                                                # full behavior suite
-make migrate       DB_PATH=./tmp.db VERSION=2           # apply migrations
-make migrate_seeds DB_PATH=./tmp.db VERSION=2           # apply migrations + seeds
-make ci_binary     TARGET=bun-darwin-arm64              # compile binary (allowed: bun-darwin-arm64, bun-darwin-x64, bun-linux-x64, bun-linux-arm64)
-make help                                               # list Makefile targets
-```
+Refer to [Makefile](./Makefile) for a comprehensive list of available helping commands.
 
-## License
+- OSX is recommended for development
+  - if you have any experience contributing to this library under Linux please share your setup
+- Makefile approach is opinionated (sorry)
+- Use any editor but don't push any related configuration of it, keep it in your machine
+  - I currently use [Helix editor](https://helix-editor.com/)
+
+## license
 
 MIT
