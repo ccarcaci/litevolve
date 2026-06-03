@@ -1,0 +1,4 @@
+DROP TABLE IF EXISTS sightings;
+DROP TABLE IF EXISTS time_slots;
+DROP TABLE IF EXISTS birders;
+DROP TABLE IF EXISTS observation_sites;
