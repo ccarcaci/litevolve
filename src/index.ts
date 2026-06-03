@@ -1,3 +1,4 @@
 import { migrate_db } from "./migrate";
+import { migration_error } from "./migration_error";
 
-export const litevolve = migrate_db
+export default { migrate_db, migration_error }

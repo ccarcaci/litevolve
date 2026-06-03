@@ -42,11 +42,11 @@ brew install litevolve
 ## Library usage
 
 ```ts
-import { migrate_db } from "litevolve"
+import { litevolve } from "litevolve"
 
 // Apply migrations up (or down) to reach version 2.
 // Returns the open Bun Database handle.
-const db = migrate_db(
+const db = litevolve(
   2,                    // apply_version: target schema version
   "./migrations",       // migrations_path: directory holding the .sql files
   "./data/birds.db",    // db_path: SQLite file (or ":memory:")
@@ -54,7 +54,7 @@ const db = migrate_db(
 )
 ```
 
-The signature lives at `src/migrate.ts:172` and the error type at `src/migration_error.ts:1`.
+The export lives at `src/index.ts:3`, the underlying signature at `src/migrate.ts:173`, and the error type at `src/migration_error.ts:1`.
 
 ## CLI usage
 
@@ -160,6 +160,7 @@ sqlite3 ./birds.db "SELECT name, timezone FROM observation_sites;"
 bun test                                                # full behavior suite
 make migrate       DB_PATH=./tmp.db VERSION=2           # apply migrations
 make migrate_seeds DB_PATH=./tmp.db VERSION=2           # apply migrations + seeds
+make ci_binary     TARGET=bun-darwin-arm64              # compile binary (allowed: bun-darwin-arm64, bun-darwin-x64, bun-linux-x64, bun-linux-arm64)
 make help                                               # list Makefile targets
 ```
 
