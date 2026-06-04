@@ -11,96 +11,66 @@ Default to using Bun instead of Node.js.
 
 ## APIs
 
-- `Bun.serve()` supports WebSockets, HTTPS, and routes. Don't use `express`.
 - `bun:sqlite` for SQLite. Don't use `better-sqlite3`.
-- `Bun.redis` for Redis. Don't use `ioredis`.
-- `Bun.sql` for Postgres. Don't use `pg` or `postgres.js`.
-- `WebSocket` is built-in. Don't use `ws`.
 - Prefer `Bun.file` over `node:fs`'s readFile/writeFile
-- Bun.$`ls` instead of execa.
 
 ## Testing
 
-Use `bun test` to run tests.
+Use `bun test` to run tests. Tests live in `src/` alongside source files (e.g. `src/migrate.test.ts`).
 
-```ts#index.test.ts
-import { test, expect } from "bun:test";
+Run tests: `make ci_test` (parallel, isolated) or `make test_debug` (with debugger).
 
-test("hello world", () => {
-  expect(1).toBe(1);
-});
+## Project
+
+**litevolve** is a versioned SQLite migration runner usable as a library (`migrate_db`) or a CLI binary.
+
+### Source layout
+
+| File | Role |
+|---|---|
+| `src/migrate.ts` | Core logic: file discovery, `migrate_up`, `migrate_down`, `migrate_db` (public API) |
+| `src/run_litevolve.ts` | CLI entry point — parses flags and calls `migrate_db` |
+| `src/migration_error.ts` | `migration_error` class (extends `Error`) |
+| `src/index.ts` | Library entry point — re-exports `migrate_db` and `migration_error` |
+| `src/migrate.test.ts` | All tests |
+| `migrations/` | Example ornithology DB (3 versions, up/down/seed files) |
+
+### Naming conventions
+
+All identifiers use `snake_case` (types, functions, variables, files). No camelCase.
+
+### Error handling
+
+Use `migration_error` from `src/migration_error.ts` for all thrown errors. Constructor: `new migration_error(module_path, method, cause_message, original_error?)`.
+
+### Migration internals
+
+- Schema version tracked via SQLite `PRAGMA user_version`.
+- Seed preference tracked in `_db_meta` table (key `init_seeds`); sticky after DB is at v0.
+- Each step runs inside `BEGIN IMMEDIATE` transaction — seed failure rolls back the schema change.
+- Statements split on `;` before comment stripping — avoid `;` inside SQL comments in migration files.
+
+### Migration filename format
+
+```
+0+[1-9][0-9]*_([a-zA-Z_]+)\.(sql|seed\.sql|down\.sql)
 ```
 
-## Frontend
+Examples: `0001_create_initial_schema.sql`, `0042_add_users.down.sql`, `01000_split_log.seed.sql`.
 
-Use HTML imports with `Bun.serve()`. Don't use `vite`. HTML imports fully support React, CSS, Tailwind.
+### Key Makefile targets
 
-Server:
+| Target | Purpose |
+|---|---|
+| `make ci_test` | Run tests (parallel, isolated) |
+| `make ci_lint` | Biome linter |
+| `make ci_check_build` | Compile check + `tsc --noEmit` |
+| `make ci_sec` | Security audit (prod deps) |
+| `make format` | Auto-fix formatting and linting |
+| `make migrate DB_PATH=<p> VERSION=<n>` | Apply migrations up/down |
+| `make migrate_seeds DB_PATH=<p> VERSION=<n>` | Migrate fresh DB with seeds |
+| `make ci_binary TARGET=<bun-darwin-arm64\|…>` | Compile standalone binary |
 
-```ts#index.ts
-import index from "./index.html"
+### Linter
 
-Bun.serve({
-  routes: {
-    "/": index,
-    "/api/users/:id": {
-      GET: (req) => {
-        return new Response(JSON.stringify({ id: req.params.id }));
-      },
-    },
-  },
-  // optional websocket support
-  websocket: {
-    open: (ws) => {
-      ws.send("Hello, world!");
-    },
-    message: (ws, message) => {
-      ws.send(message);
-    },
-    close: (ws) => {
-      // handle close
-    }
-  },
-  development: {
-    hmr: true,
-    console: true,
-  }
-})
-```
-
-HTML files can import .tsx, .jsx or .js files directly and Bun's bundler will transpile & bundle automatically. `<link>` tags can point to stylesheets and Bun's CSS bundler will bundle.
-
-```html#index.html
-<html>
-  <body>
-    <h1>Hello, world!</h1>
-    <script type="module" src="./frontend.tsx"></script>
-  </body>
-</html>
-```
-
-With the following `frontend.tsx`:
-
-```tsx#frontend.tsx
-import React from "react";
-import { createRoot } from "react-dom/client";
-
-// import .css files directly and it works
-import './index.css';
-
-const root = createRoot(document.body);
-
-export default function Frontend() {
-  return <h1>Hello, world!</h1>;
-}
-
-root.render(<Frontend />);
-```
-
-Then, run index.ts
-
-```sh
-bun --hot ./index.ts
-```
-
-For more information, read the Bun API docs in `node_modules/bun-types/docs/**.mdx`.
+Biome (`bunx biome`). Config lives in `biome.json` if present. Run `make format` to auto-fix.
