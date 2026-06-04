@@ -1,0 +1,73 @@
+# litevolve: deployment build & test
+
+DEPLOY_DIR   := $(dir $(abspath $(lastword $(MAKEFILE_LIST))))
+ROOT_DIR     := $(abspath $(DEPLOY_DIR)/..)
+DOCKERFILE   := $(DEPLOY_DIR)Dockerfile
+IMAGE_PREFIX := litevolve
+
+HOST_ARCH := $(shell uname -m)
+
+ifeq ($(HOST_ARCH),aarch64)
+  TARGETPLATFORM  := linux/arm64
+  GLIBC_BINARIES  := litevolve_linux_arm64
+  MUSL_BINARIES   := litevolve_linux_arm64_musl
+  DARWIN_BINARIES := litevolve_darwin_arm64
+else
+  TARGETPLATFORM  := linux/amd64
+  GLIBC_BINARIES  := litevolve_linux_x64 litevolve_linux_x64_modern litevolve_linux_x64_baseline
+  MUSL_BINARIES   := litevolve_linux_x64_musl
+  DARWIN_BINARIES := litevolve_darwin_x64 litevolve_darwin_x64_baseline
+endif
+
+LINUX_IMAGES  := linux_glibc linux_musl
+DARWIN_STAGES := darwin
+
+.DEFAULT_GOAL := help
+
+.PHONY: help
+help: ## show this help message
+	@echo "litevolve deployment - build & test Docker stages"
+	@echo ""
+	@echo "host arch: $(HOST_ARCH)  →  TARGETPLATFORM=$(TARGETPLATFORM)"
+	@echo ""
+	@echo "available targets:"
+	@awk 'BEGIN {FS = ":.*##"; printf ""} /^[a-zA-Z_-]+:.*?##/ { printf "  \033[36m%-20s\033[0m %s\n", $$1, $$2 } /^##@/ { printf "\n\033[1m%s\033[0m\n", substr($$0, 5) } ' $(MAKEFILE_LIST)
+
+##@ build
+
+.PHONY: docker_build
+docker_build: ## build Linux images and the darwin extraction stage
+	@for stage in $(LINUX_IMAGES) $(DARWIN_STAGES); do \
+		echo "building $(IMAGE_PREFIX):$$stage..."; \
+		docker buildx build --load \
+			--build-arg TARGETPLATFORM=$(TARGETPLATFORM) \
+			--build-arg "GLIBC_BINARIES=$(GLIBC_BINARIES)" \
+			--build-arg "MUSL_BINARIES=$(MUSL_BINARIES)" \
+			--build-arg "DARWIN_BINARIES=$(DARWIN_BINARIES)" \
+			--target=$$stage \
+			-t $(IMAGE_PREFIX):$$stage \
+			-f $(DOCKERFILE) \
+			$(ROOT_DIR) || exit 1; \
+	done
+
+##@ test
+
+.PHONY: docker_test
+docker_test: ## run smoke_test.sh for the host-arch binaries inside each Linux image
+	@FAILS=0; \
+	for binary in $(GLIBC_BINARIES); do \
+		echo ""; \
+		echo "--- $(IMAGE_PREFIX):linux_glibc / $$binary ---"; \
+		docker run --rm \
+			$(IMAGE_PREFIX):linux_glibc /usr/local/bin/smoke_test.sh $$binary \
+			|| FAILS=$$((FAILS+1)); \
+	done; \
+	for binary in $(MUSL_BINARIES); do \
+		echo ""; \
+		echo "--- $(IMAGE_PREFIX):linux_musl / $$binary ---"; \
+		docker run --rm \
+			$(IMAGE_PREFIX):linux_musl /usr/local/bin/smoke_test.sh $$binary \
+			|| FAILS=$$((FAILS+1)); \
+	done; \
+	[ "$$FAILS" -eq 0 ] || { echo ""; echo "docker_test FAILED ($$FAILS failure(s))"; exit 1; }; \
+	echo ""

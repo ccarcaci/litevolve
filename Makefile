@@ -125,7 +125,10 @@ ci_checks: ci_check_version ci_check_updates ci_lint ci_check_build ci_sec ## ru
 
 ##@ CI gen
 
-VALID_TARGETS := bun-darwin-arm64 bun-darwin-x64 bun-linux-x64 bun-linux-arm64
+VALID_TARGETS := bun-darwin-arm64 bun-darwin-x64 bun-darwin-x64-baseline \
+                 bun-linux-x64 bun-linux-x64-modern bun-linux-x64-baseline \
+                 bun-linux-arm64 \
+                 bun-linux-x64-musl bun-linux-arm64-musl
 TARGET        ?=
 
 .PHONY: _check_target
@@ -134,7 +137,7 @@ _check_target:
 	@[ -n "$(filter $(TARGET),$(VALID_TARGETS))" ] || (echo "error: invalid TARGET '$(TARGET)' (allowed: $(VALID_TARGETS))"; exit 1)
 
 .PHONY: ci_binary
-ci_binary: _check_target ## compile binary for TARGET. TARGET=<bun-darwin-arm64|bun-darwin-x64|bun-linux-x64|bun-linux-arm64>
+ci_binary: _check_target ## compile binary for TARGET. TARGET=<bun-darwin-arm64|bun-darwin-x64[-baseline]|bun-linux-x64[-modern|-baseline|-musl]|bun-linux-arm64[-musl]>
 	@echo "compile binary for $(TARGET)..."
 	@$(BUN) build $(SRC_DIR)/run_litevolve.ts \
 		--compile \
