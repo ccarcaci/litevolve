@@ -28,7 +28,7 @@ RUN mkdir -p dist \
 FROM --platform=$TARGETPLATFORM debian:bookworm-slim AS debian_base
 RUN apt-get update && apt-get install -y --no-install-recommends sqlite3 && rm -rf /var/lib/apt/lists/*
 
-FROM --platform=$TARGETPLATFORM alpine:3.21 AS alpine_base
+FROM --platform=$TARGETPLATFORM alpine:3.23 AS alpine_base
 RUN apk add --no-cache sqlite libstdc++ libgcc
 
 #  -- Linux glibc (Debian) ---
