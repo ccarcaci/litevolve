@@ -8,19 +8,16 @@ IMAGE_PREFIX := litevolve
 HOST_ARCH := $(shell uname -m)
 
 ifeq ($(HOST_ARCH),aarch64)
-  TARGETPLATFORM  := linux/arm64
   GLIBC_BINARIES  := litevolve_linux_arm64
   MUSL_BINARIES   := litevolve_linux_arm64_musl
   DARWIN_BINARIES := litevolve_darwin_arm64
 else
-  TARGETPLATFORM  := linux/amd64
   GLIBC_BINARIES  := litevolve_linux_x64 litevolve_linux_x64_modern litevolve_linux_x64_baseline
   MUSL_BINARIES   := litevolve_linux_x64_musl
   DARWIN_BINARIES := litevolve_darwin_x64 litevolve_darwin_x64_baseline
 endif
 
-LINUX_IMAGES  := linux_glibc linux_musl
-DARWIN_STAGES := darwin
+DOCKER_IMAGE_STAGES := linux_glibc linux_musl darwin
 
 .DEFAULT_GOAL := help
 
@@ -28,29 +25,46 @@ DARWIN_STAGES := darwin
 help: ## show this help message
 	@echo "litevolve deployment - build & test Docker stages"
 	@echo ""
-	@echo "host arch: $(HOST_ARCH)  →  TARGETPLATFORM=$(TARGETPLATFORM)"
+	@echo "host arch: $(HOST_ARCH)"
 	@echo ""
 	@echo "available targets:"
 	@awk 'BEGIN {FS = ":.*##"; printf ""} /^[a-zA-Z_-]+:.*?##/ { printf "  \033[36m%-20s\033[0m %s\n", $$1, $$2 } /^##@/ { printf "\n\033[1m%s\033[0m\n", substr($$0, 5) } ' $(MAKEFILE_LIST)
 
-##@ build
+.PHONY: runners_build
+runners_build: ## build executables for the specific runner
+	ifeq ($(RUNNER_OS),Linux) # ubuntu glibc
+		@for binary in GLIBC_BINARIES; do \
+			echo ""; \
+			echo "--- building $$binary ---"; \
+			target=$(echo "$binary" | sed 's/litevolve_/bun-/' | tr '_' '-'); \
+			make ci_binary TARGET="$target" && mv dist/litevolve "dist/$binary"; \
+		done
+		return 0
+	ifeq ($(RUNNER_OS),macOS) # macOS darwin
+		@for binary in DARWIN_BINARIES; do \
+			echo ""; \
+			echo "--- building $$binary ---"; \
+			target=$(echo "$binary" | sed 's/litevolve_/bun-/' | tr '_' '-'); \
+			make ci_binary TARGET="$target" && mv dist/litevolve "dist/$binary"; \
+		done
+		return 0
+	return -1
+
+##@ docker
 
 .PHONY: docker_build
 docker_build: ## build Linux images and the darwin extraction stage
-	@for stage in $(LINUX_IMAGES) $(DARWIN_STAGES); do \
+	@for stage in $(DOCKER_IMAGE_STAGES); do \
 		echo "building $(IMAGE_PREFIX):$$stage..."; \
 		docker buildx build --load \
-			--build-arg TARGETPLATFORM=$(TARGETPLATFORM) \
 			--build-arg "GLIBC_BINARIES=$(GLIBC_BINARIES)" \
 			--build-arg "MUSL_BINARIES=$(MUSL_BINARIES)" \
 			--build-arg "DARWIN_BINARIES=$(DARWIN_BINARIES)" \
 			--target=$$stage \
-			-t $(IMAGE_PREFIX):$$stage \
-			-f $(DOCKERFILE) \
+			--tag $(IMAGE_PREFIX):$$stage \
+			--file $(DOCKERFILE) \
 			$(ROOT_DIR) || exit 1; \
 	done
-
-##@ test
 
 .PHONY: docker_test
 docker_test: ## run smoke_test.sh for the host-arch binaries inside each Linux image

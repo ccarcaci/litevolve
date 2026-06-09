@@ -1,8 +1,4 @@
-ARG BUILDPLATFORM
-ARG TARGETPLATFORM
-
-FROM --platform=$BUILDPLATFORM oven/bun:1.3.14 AS builder
-#  -- builder: compiles only the binaries needed for the target platform ---
+FROM oven/bun:1.3.14 AS builder
 
 WORKDIR /app
 
@@ -17,6 +13,8 @@ COPY src/ ./src/
 ARG GLIBC_BINARIES
 ARG MUSL_BINARIES
 ARG DARWIN_BINARIES
+
+# build all binaries, then, in the following stages, each stage will copy only its compatible binaries
 RUN mkdir -p dist \
  && for binary in $GLIBC_BINARIES $MUSL_BINARIES $DARWIN_BINARIES; do \
       target=$(echo "$binary" | sed 's/litevolve_/bun-/' | tr '_' '-'); \
@@ -25,10 +23,10 @@ RUN mkdir -p dist \
 
 ##  --
 
-FROM --platform=$TARGETPLATFORM debian:bookworm-slim AS debian_base
+FROM debian:bookworm-slim AS debian_base
 RUN apt-get update && apt-get install -y --no-install-recommends sqlite3 && rm -rf /var/lib/apt/lists/*
 
-FROM --platform=$TARGETPLATFORM alpine:3.23 AS alpine_base
+FROM alpine:3.23 AS alpine_base
 RUN apk add --no-cache sqlite libstdc++ libgcc
 
 #  -- Linux glibc (Debian) ---
