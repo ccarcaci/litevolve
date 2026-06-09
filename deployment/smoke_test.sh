@@ -1,14 +1,15 @@
 #!/bin/sh
 
 BINARY_NAME=$1
-BINARY=/usr/local/bin/$BINARY_NAME
+BINARY=${2:-/usr/local/bin/$BINARY_NAME}
+MIGRATIONS_PATH=${3:-/migrations}
 DB=/tmp/litevolve_smoke_$$.db
 
 echo "testing $BINARY_NAME..."
 $BINARY \
     --apply_version=3 \
     --db_path=$DB \
-    --migrations_path=/migrations \
+    --migrations_path=$MIGRATIONS_PATH \
     --init_seeds || exit 1
 
 FAILS=0

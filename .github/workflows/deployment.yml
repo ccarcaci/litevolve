@@ -57,11 +57,7 @@ jobs:
 
       - name: smoke test runner binaries
         run: |
-          sudo cp -r migrations /migrations
           for binary in dist/litevolve_*; do
             [ -f "$binary" ] || continue
-            name=$(basename "$binary")
-            sudo cp "$binary" "/usr/local/bin/$name"
-            sudo chmod +x "/usr/local/bin/$name"
-            deployment/smoke_test.sh "$name"
+            deployment/smoke_test.sh "$(basename "$binary")" "$binary" "$PWD/migrations"
           done
