@@ -37,7 +37,7 @@ runners_build: ## build executables for the specific runner
 			echo ""; \
 			echo "--- building $$binary ---"; \
 			target=$(echo "$binary" | sed 's/litevolve_/bun-/' | tr '_' '-'); \
-			make ci_binary TARGET="$target" && mv dist/litevolve "dist/$binary"; \
+			make ci_binary TARGET="$$target" && mv dist/litevolve "dist/$$binary"; \
 		done
 		return 0
 	ifeq ($(RUNNER_OS),macOS) # macOS darwin
@@ -45,7 +45,7 @@ runners_build: ## build executables for the specific runner
 			echo ""; \
 			echo "--- building $$binary ---"; \
 			target=$(echo "$binary" | sed 's/litevolve_/bun-/' | tr '_' '-'); \
-			make ci_binary TARGET="$target" && mv dist/litevolve "dist/$binary"; \
+			make ci_binary TARGET="$$target" && mv dist/litevolve "dist/$$binary"; \
 		done
 		return 0
 	return -1
