@@ -53,7 +53,15 @@ jobs:
         run: make install
 
       - name: build runner binaries
-        run: make -C deployment runners_build
+        run: deployment/runners_build.sh
 
-      - name: set up docker buildx
-        uses: docker/setup-buildx-action@d7f5e7f509e45cec5c76c4d5afdd7de93d0b3df5 # v4
+      - name: smoke test runner binaries
+        run: |
+          sudo cp -r migrations /migrations
+          for binary in dist/litevolve_*; do
+            [ -f "$binary" ] || continue
+            name=$(basename "$binary")
+            sudo cp "$binary" "/usr/local/bin/$name"
+            sudo chmod +x "/usr/local/bin/$name"
+            deployment/smoke_test.sh "$name"
+          done

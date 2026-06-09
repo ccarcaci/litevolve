@@ -30,27 +30,6 @@ help: ## show this help message
 	@echo "available targets:"
 	@awk 'BEGIN {FS = ":.*##"; printf ""} /^[a-zA-Z_-]+:.*?##/ { printf "  \033[36m%-20s\033[0m %s\n", $$1, $$2 } /^##@/ { printf "\n\033[1m%s\033[0m\n", substr($$0, 5) } ' $(MAKEFILE_LIST)
 
-.PHONY: runners_build
-runners_build: ## build executables for the specific runner (RUNNER_OS=Linux|macOS)
-	@if [ "$(RUNNER_OS)" = "Linux" ]; then \
-		for binary in $(GLIBC_BINARIES); do \
-			echo ""; \
-			echo "--- building $$binary ---"; \
-			target=$$(echo "$$binary" | sed 's/litevolve_/bun-/' | tr '_' '-'); \
-			$(MAKE) -C $(ROOT_DIR) ci_binary TARGET="$$target" && mv $(ROOT_DIR)/dist/litevolve "$(ROOT_DIR)/dist/$$binary" || exit 1; \
-		done; \
-	elif [ "$(RUNNER_OS)" = "macOS" ]; then \
-		for binary in $(DARWIN_BINARIES); do \
-			echo ""; \
-			echo "--- building $$binary ---"; \
-			target=$$(echo "$$binary" | sed 's/litevolve_/bun-/' | tr '_' '-'); \
-			$(MAKE) -C $(ROOT_DIR) ci_binary TARGET="$$target" && mv $(ROOT_DIR)/dist/litevolve "$(ROOT_DIR)/dist/$$binary" || exit 1; \
-		done; \
-	else \
-		echo "error: unsupported RUNNER_OS '$(RUNNER_OS)' (expected Linux or macOS)"; \
-		exit 1; \
-	fi
-
 ##@ docker
 
 .PHONY: docker_build
