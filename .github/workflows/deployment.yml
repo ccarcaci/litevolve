@@ -20,7 +20,7 @@ jobs:
       - name: install bun
         uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2
         with:
-          bun-version-file: ".bun_version"
+          bun-version-file: ".bun-version"
       - name: install dependencies
         run: make install
       - name: run ci_checks
@@ -38,7 +38,7 @@ jobs:
           ubuntu-latest,
           ubuntu-24.04-arm,
           macos-latest,
-          macos-13 ]
+          macos-15-intel ]
 
     steps:
       - name: checkout

@@ -5,7 +5,7 @@
 
 set -e
 
-REQUIRED_VERSION=$(cat .bun_version | tr -d '[:space:]')
+REQUIRED_VERSION=$(cat .bun-version | tr -d '[:space:]')
 CURRENT_VERSION=$(bun --version 2>/dev/null || echo "not installed")
 
 if [ "$CURRENT_VERSION" = "not installed" ]; then
