@@ -1,3 +1,6 @@
+-- this is a test comment with semicolons; to prove
+-- that; they won't affect migrations
+
 CREATE TABLE observation_sites (
   id TEXT PRIMARY KEY,
   name TEXT NOT NULL
@@ -17,6 +20,8 @@ CREATE TABLE time_slots (
   reserved INTEGER NOT NULL DEFAULT 0,
   FOREIGN KEY (site_id) REFERENCES observation_sites(id)
 );
+
+-- here; too
 
 CREATE TABLE sightings (
   id TEXT PRIMARY KEY,

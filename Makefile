@@ -74,10 +74,16 @@ clean_all: clean ## clean everything including bun lockfile
 
 ##@ development
 
+
+.PHONY: test
+test: ## run tests with bun native test runner (e.g. make test test_name)
+	@echo "running tests..."
+	@$(MAKE) --no-print-directory ci_test $(if $(filter-out test, $(MAKECMDGOALS)), PATTERN=$(filter-out test, $(MAKECMDGOALS)))
+
 .PHONY: test_debug
 test_debug: ## run tests with debugger (e.g., make test_debug test_name)
 	@echo "running tests..."
-	@$(BUN) test --inspect-wait $(if $(filter-out test_debug,$(MAKECMDGOALS)),--test-name-pattern=$(filter-out test_debug,$(MAKECMDGOALS))) $(SRC_DIR)/
+	@$(MAKE) --no-print-directory ci_test DEBUG=1 $(if $(filter-out test_debug, $(MAKECMDGOALS)), PATTERN=$(filter-out test_debug, $(MAKECMDGOALS)))
 
 .PHONY: format
 format: ## fix formatting, linting (safe fixes), and import sorting with biome
@@ -113,14 +119,18 @@ ci_sec: ## audit production dependencies for known vulnerabilities (bun audit --
 	@echo "running security audit (production deps)..."
 	@$(BUN) audit --prod
 
+PATTERN ?=
+DEBUG ?=
 .PHONY: ci_test
 ci_test: ## run tests with bun native test runner (e.g. make test test_name)
 	@echo "running tests..."
-	@$(BUN) test --isolate --parallel=4 $(if $(filter-out ci_test,$(MAKECMDGOALS)),--test-name-pattern=$(filter-out ci_test,$(MAKECMDGOALS))) $(SRC_DIR)/
+	@$(BUN) test
+		$(if $(DEBUG),--inspect-wait,--isolate --parallel=4) \
+		$(if $(PATTERN),--test-name-pattern=$(PATTERN)) \
+		$(SRC_DIR)/
 
-.PHONY: ci_fast
-ci_checks: ci_check_version ci_check_updates ci_lint ci_check_build ci_sec ## run ci-check, ci-build, ci-test, ci-sec, and ci-updates in order
-	make ci_test
+.PHONY: ci_checks
+ci_checks: ci_check_version ci_check_updates ci_lint ci_check_build ci_sec ci_test ## run ci_check_version ci_check_updates ci_lint ci_check_build ci_sec ci_test in order
 	@echo "all CI checks passed!"
 
 ##@ CI gen

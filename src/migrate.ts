@@ -48,8 +48,8 @@ const find_seed_path = (file_path: string): string | null => {
 // treated as statement terminators, so avoid them in migration comment text.
 const run_sql_statements = (db: Database, sql: string): void => {
   sql
+    .replace(/--[^\n]*/g, "").trim() // /--[^\n]*/g strips each "-- … end-of-line" comment; trim removes residual whitespace
     .split(";") // statement terminator; semicolons in comment text also split here
-    .map((s) => s.replace(/--[^\n]*/g, "").trim()) // /--[^\n]*/g strips each "-- … end-of-line" comment; trim removes residual whitespace
     .filter((s) => s.length > 0) // discard empty chunks from trailing ";" or comment-only segments
     .forEach((s) => {
       db.run(s)
