@@ -3,21 +3,34 @@
 Versioned SQLite migrations for Bun, Node, and Deno — usable as a library or a CLI.
 
 [![CI](https://github.com/ccarcaci/litevolve/actions/workflows/ci.yml/badge.svg)](https://github.com/ccarcaci/litevolve/actions/workflows/ci.yml)
+[![version](https://img.shields.io/github/package-json/v/ccarcaci/litevolve)](./package.json)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](./LICENSE.md)
+[![Bun](https://img.shields.io/badge/Bun-%3E%3D1.0-black?logo=bun)](https://bun.sh)
+[![Node](https://img.shields.io/badge/Node-%3E%3D20-339933?logo=node.js&logoColor=white)](https://nodejs.org)
+[![Deno](https://img.shields.io/badge/Deno-%3E%3D1.40-000?logo=deno)](https://deno.land)
 <!-- [![npm version](https://img.shields.io/npm/v/litevolve.svg)](https://www.npmjs.com/package/litevolve) -->
 <!-- [![npm downloads](https://img.shields.io/npm/dm/litevolve.svg)](https://www.npmjs.com/package/litevolve) -->
 <!-- [![JSR](https://jsr.io/badges/@litevolve/litevolve)](https://jsr.io/@litevolve/litevolve) -->
 <!-- [![Homebrew installs](https://img.shields.io/homebrew/installs/dm/litevolve.svg)](https://formulae.brew.sh/formula/litevolve) -->
 <!-- [![Bundle size](https://img.shields.io/bundlephobia/minzip/litevolve.svg)](https://bundlephobia.com/package/litevolve) -->
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](./LICENSE.md)
-[![Bun](https://img.shields.io/badge/Bun-%3E%3D1.0-black?logo=bun)](https://bun.sh)
-[![Node](https://img.shields.io/badge/Node-%3E%3D20-339933?logo=node.js&logoColor=white)](https://nodejs.org)
-[![Deno](https://img.shields.io/badge/Deno-%3E%3D1.40-000?logo=deno)](https://deno.land)
 
 ---
 
 ## what_it_does
 
 `litevolve` reads a directory of numbered SQL files (`{version}_name.sql`, `{version}_name.down.sql`, optional `{version}_name.seed.sql`) and applies them up or down against a SQLite database to reach a target schema version. Each step runs in a single `BEGIN IMMEDIATE` transaction so a failed seed rolls back its schema change too. The current schema version is tracked in SQLite's native `PRAGMA user_version`; a sticky `init_seeds` flag is recorded in an internal `_db_meta` table so seed behavior stays consistent across subsequent upgrades.
+
+## coming_soon
+
+`litevolve` is still in embrional phase.
+
+It will be available as:
+- `npm` package for use on Bun, Node, and Deno
+- executable for several targets (Darwin, Linux), architectures (x64, arm64), and platforms (glibc, musl)
+- executable for Bun, Node, and Deno ecosystems
+- docker image
+
+The following instructions might not work since the integration is missing.
 
 ## install
 
@@ -106,9 +119,8 @@ Invalid: `1_foo.sql` (no leading zero), `0000_foo.sql` (no non-zero digit), `000
 
 Notes about the parser (see `src/migrate.ts:48`):
 
-- Statements are split on `;`. **Avoid `;` inside string literals or SQL comments** — the splitter runs before comment stripping, so a semicolon in a comment becomes a statement terminator.
-- Line comments `-- …` are stripped after the split.
-- Down migrations never apply seeds. Each `.down.sql` is responsible for its own data cleanup before dropping columns or tables.
+- Line comments `-- …` are stripped
+- Down migrations never apply seeds. Each `.down.sql` is responsible for its own data cleanup before dropping columns or tables
 
 ## `init_seeds`_semantics
 
@@ -158,6 +170,7 @@ Refer to [Makefile](./Makefile) for a comprehensive list of available helping co
 
 - OSX is recommended for development
   - if you have any experience contributing to this library under Linux please share your setup
+- `litevolve` basic ecosystem is Bun
 - Makefile approach is opinionated (sorry)
 - Use any editor but don't push any related configuration of it, keep it in your machine
   - I currently use [Helix editor](https://helix-editor.com/)
