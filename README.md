@@ -3,17 +3,15 @@
 Versioned SQLite migrations for Bun, Node, and Deno — usable as a library or a CLI.
 
 [![CI](https://github.com/ccarcaci/litevolve/actions/workflows/ci.yml/badge.svg)](https://github.com/ccarcaci/litevolve/actions/workflows/ci.yml)
-[![npm version](https://img.shields.io/npm/v/litevolve.svg)](https://www.npmjs.com/package/litevolve)
-[![npm downloads](https://img.shields.io/npm/dm/litevolve.svg)](https://www.npmjs.com/package/litevolve)
-[![JSR](https://jsr.io/badges/@litevolve/litevolve)](https://jsr.io/@litevolve/litevolve)
-[![Homebrew installs](https://img.shields.io/homebrew/installs/dm/litevolve.svg)](https://formulae.brew.sh/formula/litevolve)
-[![Bundle size](https://img.shields.io/bundlephobia/minzip/litevolve.svg)](https://bundlephobia.com/package/litevolve)
-[![License: MIT](https://img.shields.io/npm/l/litevolve.svg)](./LICENSE)
+<!-- [![npm version](https://img.shields.io/npm/v/litevolve.svg)](https://www.npmjs.com/package/litevolve) -->
+<!-- [![npm downloads](https://img.shields.io/npm/dm/litevolve.svg)](https://www.npmjs.com/package/litevolve) -->
+<!-- [![JSR](https://jsr.io/badges/@litevolve/litevolve)](https://jsr.io/@litevolve/litevolve) -->
+<!-- [![Homebrew installs](https://img.shields.io/homebrew/installs/dm/litevolve.svg)](https://formulae.brew.sh/formula/litevolve) -->
+<!-- [![Bundle size](https://img.shields.io/bundlephobia/minzip/litevolve.svg)](https://bundlephobia.com/package/litevolve) -->
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](./LICENSE.md)
 [![Bun](https://img.shields.io/badge/Bun-%3E%3D1.0-black?logo=bun)](https://bun.sh)
 [![Node](https://img.shields.io/badge/Node-%3E%3D20-339933?logo=node.js&logoColor=white)](https://nodejs.org)
 [![Deno](https://img.shields.io/badge/Deno-%3E%3D1.40-000?logo=deno)](https://deno.land)
-
-> **Note:** badges that point at the npm registry, the JSR scope `@litevolve`, the Homebrew formula, and the GitHub Actions workflow are placeholders — those resources are not published yet and will resolve once the corresponding releases land.
 
 ---
 
@@ -166,4 +164,4 @@ Refer to [Makefile](./Makefile) for a comprehensive list of available helping co
 
 ## license
 
-MIT
+[MIT](./LICENSE.md)
