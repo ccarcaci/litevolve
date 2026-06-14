@@ -43,19 +43,6 @@ Introduce a thin SQLite adapter interface. Three implementations, one per runtim
 - `node:sqlite` uses `DatabaseSync` and `prepare(sql)` — close but not identical; `db.query(...)` calls need translating to `db.prepare(...).get/all/run`.
 - `node:sqlite` is **Stability 1.2 — Release candidate** as of Node v25.7.0. Available since v22.5.0.
 
----
-
-## Industry Pattern
-
-Libraries that support all three runtimes follow one of two approaches:
-
-- **Zero native deps** (Hono, Zod): use only Web Standard APIs. No SQLite means no problem. Not applicable here.
-- **Accept the db object from the caller** (Drizzle ORM): the library defines a thin adapter interface; the caller brings their own driver (`bun:sqlite`, `node:sqlite`, `better-sqlite3`). No native dep inside the library. Drizzle uses `peerDependenciesMeta: { optional: true }` for each driver — users install only the one they need.
-
-Drizzle's model is the right reference for litevolve.
-
----
-
 ## Chosen Strategy: Monorepo with Runtime Packages
 
 ```
@@ -93,6 +80,8 @@ Root `package.json`:
 | `litevolve-node` | Yes | — | — |
 | `litevolve-deno` | Yes | — | — |
 
+The Docker image and standalone executable are CI/CD pipeline artifacts. They are compiled from the same source as `litevolve-bun` via a dedicated pipeline step (e.g. `make ci_binary`, GoReleaser) that runs independently of npm publishing. The `litevolve-bun/package.json` is unaware of them — its `"files"` allowlist covers only `dist/` and `src/`, and no lifecycle script or build hook in the package references binary compilation.
+
 ### Why three packages, not conditional exports on one
 
 npm dependency installation is not runtime-aware — there is no `runtime` field, only `os` and `cpu`. Putting `better-sqlite3` in any shared `dependencies` or `optionalDependencies` field installs a native addon on Bun and Node consumers who will never use it. Three packages give each runtime an isolated `package.json` with only the deps it actually needs.
@@ -108,26 +97,15 @@ type db_adapter = {
 }
 ```
 
+The interface could be very different, it should act as a generic relational-DB interface and not as a mere "SQLite wrapper".
+
 The `core` package is `private` — never published to npm. Each runtime package depends on it via `workspace:*` and bundles it at build time.
+
+`bun build --bundle` will include the `core/` content in the bundle.
 
 ### API change
 
-`migrate_db` currently accepts `db_path: string` and opens the database internally. With the adapter model the signature becomes:
-
-```ts
-migrate_db(apply_version: number, migrations_path: string, db: db_adapter): void
-```
-
-The caller opens and configures the database. This mirrors Drizzle's model and eliminates all runtime-specific code from `core`.
-
-**What changes in the codebase:**
-1. New adapter interface file (`db_adapter.ts`) + three implementation files.
-2. `migrate.ts` imports from the adapter instead of `bun:sqlite` directly.
-3. `migrate_db` return type changes from `Database` (bun:sqlite) to the adapter type — a public API break, acceptable at v0.0.1.
-4. `Bun.argv` → `process.argv` in `run_litevolve.ts`.
-5. Build step added: `bun build` emitting `dist/*.js` + `tsc --emitDeclarationOnly` for `.d.ts`.
-
----
+`migrate_db` will use the `db_adapter` interface. During the bundling, an implementation of it will be provided.
 
 ## package.json per runtime package
 
@@ -149,7 +127,7 @@ Bun docs (verbatim): _"If your library is written in TypeScript, you can publish
   },
   "types": "./dist/index.d.ts",
   "files": ["dist", "src"],
-  "engines": { "bun": ">=1.0" }
+  "engines": { "bun": "=1.0" }
 }
 ```
 
@@ -166,11 +144,11 @@ The `"bun"` condition serves raw TypeScript to Bun consumers. The `"default"` fa
   "exports": { ".": "./dist/index.js" },
   "types": "./dist/index.d.ts",
   "files": ["dist"],
-  "engines": { "node": ">=22.5" }
+  "engines": { "node": "=22.5" }
 }
 ```
 
-`engines.node >= 22.5` because `node:sqlite` (`DatabaseSync`) was added in v22.5.0 (Stability 1.2 RC as of v25.7.0).
+`engines.node = 22.5` because `node:sqlite` (`DatabaseSync`) was added in v22.5.0 (Stability 1.2 RC as of v25.7.0).
 
 ```json
 // litevolve-deno/package.json
@@ -181,9 +159,11 @@ The `"bun"` condition serves raw TypeScript to Bun consumers. The `"default"` fa
   "exports": { ".": "./dist/index.js" },
   "types": "./dist/index.d.ts",
   "files": ["dist"],
-  "dependencies": { "better-sqlite3": ">=11.0.0" }
+  "dependencies": { "better-sqlite3": "11.0.0" }
 }
 ```
+
+Always use pinned version of runtimes (Bun, Node.js, Deno) and dependencies. Use a script to check of updates and manually promote new versions after having tested them.
 
 ### `better-sqlite3` and Bun's lifecycle scripts
 
@@ -216,18 +196,15 @@ Requirements:
 
 - `"files"` allowlist on each package — never `.npmignore`. Prevents accidentally shipping `.env`, test fixtures, migration SQL, or source maps with absolute paths.
 - No `postinstall` or network-fetching lifecycle scripts in litevolve packages themselves.
-- Pin `better-sqlite3` to a tested minor version (it is a runtime dep for the Deno build).
+- Always use pinned versions.
 
 ---
 
 ## Open Items
 
-1. **Confirm Deno + `node:sqlite`** — if supported, `litevolve-deno` shares the Node adapter and drops `better-sqlite3`.
-2. **`migrate_db` return type** — `void` or return the `db_adapter`? (callers may want to reuse the connection).
-3. **Versioning discipline** — all three packages must be published together at the same version. Set up coordinated CI publish (e.g., Changesets).
-4. **CLI / executable scope** — `litevolve-bun` produces the Bun-compiled binary distributed via brew, GoReleaser, eopkg. Confirm those pipelines are out of scope for the npm library packages.
-5. **Verify Bun + `node:sqlite`** — if Bun already supports `node:sqlite`, the Bun and Node adapter implementations could share one file.
-6. **Verify Deno + `npm:better-sqlite3`** — confirm it works without extra `--allow-ffi` flags in target environments.
+1. **Versioning discipline** — all three packages must be published together at the same version. Set up coordinated CI publish (e.g., Changesets).
+2. `node:sqlite` Stability 1.x is understated as a risk. Stability 1.2 means the API is not frozen — Node.js reserves the right to change
+   it in semver-minor or semver-patch releases without it being a breaking change by Node's own policy. Pin specific Node.js version instead of using `>=22.5`
 
 ---
 
