@@ -131,23 +131,12 @@ The caller opens and configures the database. This mirrors Drizzle's model and e
 
 ## package.json per runtime package
 
-### Runtime condition resolution order (from official docs)
+Each package targets exactly one runtime, so no multi-runtime conditional routing is needed. The only conditional in `litevolve-bun` is a **TypeScript source optimization**: Bun can import raw `.ts` files directly, skipping compilation. This is unrelated to runtime discrimination — it is a build-output choice for the Bun consumer only.
 
-| Condition | Bun | Node.js | Deno (ESM) |
-|---|---|---|---|
-| `"bun"` | first | ignored | ignored |
-| `"deno"` | ignored | ignored | first |
-| `"node"` | fallback | matched | fallback |
-| `"import"` | fallback | matched | fallback |
-| `"default"` | last | last | last |
-
-Bun full order: `["bun", "node", "require", "import", "default"]`
-Deno ESM order: `["deno", "node", "import", "module-sync", "default"]`
-Node.js: ignores `"bun"` and `"deno"` entirely.
-
-Each package `package.json` is simple — no conditional exports needed since each package is already runtime-specific:
+Bun docs (verbatim): _"If your library is written in TypeScript, you can publish your (un-transpiled!) TypeScript files to npm directly. If you specify your package's `*.ts` entrypoint in the `"bun"` condition, Bun will directly import and execute your TypeScript source files."_
 
 ```json
+// litevolve-bun/package.json
 {
   "name": "litevolve-bun",
   "version": "0.0.1",
@@ -164,9 +153,37 @@ Each package `package.json` is simple — no conditional exports needed since ea
 }
 ```
 
-Bun docs (verbatim): _"If your library is written in TypeScript, you can publish your (un-transpiled!) TypeScript files to npm directly. If you specify your package's `*.ts` entrypoint in the `"bun"` condition, Bun will directly import and execute your TypeScript source files."_
+The `"bun"` condition serves raw TypeScript to Bun consumers. The `"default"` fallback serves compiled JS to IDE tooling and TypeScript language servers that do not resolve the `"bun"` condition.
 
-The `litevolve-node` and `litevolve-deno` packages ship only `dist/` (compiled JS + `.d.ts`). `engines.node >= 22.5` for `litevolve-node` (`node:sqlite` added in v22.5.0, Stability 1.2 RC as of v25.7.0).
+`litevolve-node` and `litevolve-deno` ship only `dist/` and need no conditional exports:
+
+```json
+// litevolve-node/package.json
+{
+  "name": "litevolve-node",
+  "version": "0.0.1",
+  "type": "module",
+  "exports": { ".": "./dist/index.js" },
+  "types": "./dist/index.d.ts",
+  "files": ["dist"],
+  "engines": { "node": ">=22.5" }
+}
+```
+
+`engines.node >= 22.5` because `node:sqlite` (`DatabaseSync`) was added in v22.5.0 (Stability 1.2 RC as of v25.7.0).
+
+```json
+// litevolve-deno/package.json
+{
+  "name": "litevolve-deno",
+  "version": "0.0.1",
+  "type": "module",
+  "exports": { ".": "./dist/index.js" },
+  "types": "./dist/index.d.ts",
+  "files": ["dist"],
+  "dependencies": { "better-sqlite3": ">=11.0.0" }
+}
+```
 
 ### `better-sqlite3` and Bun's lifecycle scripts
 
