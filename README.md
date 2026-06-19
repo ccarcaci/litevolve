@@ -88,6 +88,27 @@ deno run --allow-read --allow-write npm:litevolve \
   --apply_version=2 --db_path=./data/birds.db --migrations_path=./migrations
 ```
 
+## docker_usage
+
+To run migrations during a Docker build without installing litevolve's runtime in your image, copy the binary from the official image in a multi-stage build:
+
+```dockerfile
+FROM litevolve:latest AS migrator
+
+FROM debian:bookworm-slim
+COPY --from=migrator /usr/local/bin/litevolve /usr/local/bin/litevolve
+COPY ./migrations /migrations
+RUN litevolve --apply_version=3 --db_path=./data/app.db --migrations_path=/migrations
+```
+
+For Alpine-based images, use the musl-linked variant:
+
+```dockerfile
+FROM litevolve:musl AS migrator
+```
+
+This pattern is suited for baking a pre-seeded read-only SQLite file into an image. For runtime migrations against a writable volume, run litevolve at container startup instead.
+
 ## migration_file_conventions
 
 Files in the migrations directory are validated by a strict regex:

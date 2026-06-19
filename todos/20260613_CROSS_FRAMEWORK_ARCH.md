@@ -26,11 +26,11 @@ Keep the code as-is. Set `"engines": { "bun": ">=1.0" }`. Document it as Bun-onl
 
 Introduce a thin SQLite adapter interface. Three implementations, one per runtime.
 
-| Runtime | Backend | Class |
-|---|---|---|
-| Bun | `bun:sqlite` | `Database` |
-| Node ≥ 22.5 | `node:sqlite` | `DatabaseSync` |
-| Deno | `npm:better-sqlite3` (Node-API) | `Database` |
+| Runtime      | Backend                         | Class          |
+| ------------ | ------------------------------- | -------------- |
+| Bun          | `bun:sqlite`                    | `Database`     |
+| Node ≥ 22.5  | `node:sqlite`                   | `DatabaseSync` |
+| Deno         | `npm:better-sqlite3` (Node-API) | `Database`     |
 
 **API surface used in `migrate.ts`** (the adapter only needs to cover this):
 - `new Database(path)`
@@ -74,13 +74,110 @@ Root `package.json`:
 
 ### What each package produces
 
-| Package | npm library | Docker image | Executable |
-|---|---|---|---|
-| `litevolve-bun` | Yes | Yes | Yes (brew, GoReleaser, eopkg) |
-| `litevolve-node` | Yes | — | — |
-| `litevolve-deno` | Yes | — | — |
+| Package          | npm library | Docker image | Executable                    |
+| ---------------- | ----------- | ------------ | ----------------------------- |
+| `litevolve-bun`  | Yes         | Yes          | Yes (brew, GoReleaser, eopkg) |
+| `litevolve-node` | Yes         | —            | —                             |
+| `litevolve-deno` | Yes         | —            | —                             |
+
+### Architecture Diagram
+
+```
+                     ┌──────────────────────────────────────────────────────────────┐
+                     │             litevolve  (monorepo root · private)             │
+                     │          package.json: workspaces: ["packages/*"]            │
+                     └──────────────────────────────────────────────────────────────┘
+                                                   │
+  ┌────────────────────────────────────────────────┴─────────────────────────────────────┐
+  │                          packages/core  (private · never published)                  │
+  │              migrate.ts  migration_error.ts  run_litevolve.ts  index.ts              │
+  │               db_adapter: { run(sql: string), query(sql).get(…) / .run(…) }          │
+  └───────────────────────────────────────┬─────────────────────────────────────────────┘
+                                          │  workspace:*
+                       ┌──────────────────┼──────────────────┐
+                       │                  │                   │
+                       ▼                  ▼                   ▼
+         ┌─────────────────────┐  ┌─────────────────────┐  ┌─────────────────────┐
+         │    packages/bun     │  │   packages/node     │  │   packages/deno     │
+         │    litevolve-bun    │  │   litevolve-node    │  │   litevolve-deno    │
+         ├─────────────────────┤  ├─────────────────────┤  ├─────────────────────┤
+         │ bun:sqlite adapter  │  │ node:sqlite adapter │  │ better-sqlite3      │
+         │ deps: none          │  │ deps: none          │  │ adapter             │
+         │ engines: bun=1.0    │  │ engines: node=22.5  │  │ deps:               │
+         │ exports:            │  │ exports:            │  │  better-sqlite3     │
+         │  "bun": src/*.ts    │  │  ".": ./dist/       │  │  11.0.0 (pinned)    │
+         │  default: ./dist/   │  │                     │  │ exports:            │
+         │                     │  │                     │  │  ".": ./dist/       │
+         └──────────┬──────────┘  └──────────┬──────────┘  └──────────┬──────────┘
+                    │                         │                         │
+════════════════════╪═════════════════════════╪═════════════════════════╪════════════════
+ CI / BUILD         │                         │                         │
+════════════════════╪═════════════════════════╪═════════════════════════╪════════════════
+                    │                         │                         │
+         bun build --bundle        bun build --bundle        bun build --bundle
+                    │                         │                         │
+                    └─────────────────────────┴─────────────────────────┘
+                                              │
+                               npm publish --provenance --access public
+                                              │
+                                              ▼
+                                ┌───────────────────────────────┐
+                                │         npm registry          │
+                                │   litevolve-bun               │
+                                │   litevolve-node              │
+                                │   litevolve-deno              │
+                                └───────────────────────────────┘
+
+  litevolve-bun (additional pipelines)
+
+       make ci_binary                    Docker build                   GoReleaser
+       bun compile                            │                             │
+            │                                 │                             │
+            ▼                                 ▼                             ▼
+  ┌────────────────────────┐   ┌──────────────────────────┐   ┌──────────────────────────┐
+  │    standalone binary   │   │       Docker image       │   │      executables         │
+  │  · bun-darwin-arm64    │   │     litevolve:latest     │   │  · brew tap              │
+  │  · bun-linux-x64       │   │    (binary + runtime)    │   │  · eopkg (.eopkg)        │
+  │  · …                   │   │                          │   │  · GoReleaser release    │
+  └────────────────────────┘   └──────────────────────────┘   └──────────────────────────┘
+```
 
 The Docker image and standalone executable are CI/CD pipeline artifacts. They are compiled from the same source as `litevolve-bun` via a dedicated pipeline step (e.g. `make ci_binary`, GoReleaser) that runs independently of npm publishing. The `litevolve-bun/package.json` is unaware of them — its `"files"` allowlist covers only `dist/` and `src/`, and no lifecycle script or build hook in the package references binary compilation.
+
+### GoReleaser Distribution
+
+#### Artifact / channel verdict
+
+| Artifact / Channel                    | Target platform               | GoReleaser config block              | Verdict                                                  |
+| ------------------------------------- | ----------------------------- | ------------------------------------ | -------------------------------------------------------- |
+| GitHub Release (archives + checksums) | all                           | `builds:` + `archives:` + `release:` | **ship** — baseline, automatic                           |
+| Homebrew tap                          | macOS + Linux                 | `brews:`                             | **ship**                                                 |
+| `.deb`                                | Ubuntu, Debian, Mint, Pop!_OS | `nfpms:` `formats: [deb]`            | **ship**                                                 |
+| `.rpm`                                | RHEL, Fedora, Rocky, Alma     | `nfpms:` `formats: [rpm]`            | **ship**                                                 |
+| AUR                                   | Arch, Manjaro, EndeavourOS    | `aurs:`                              | **ship** — GoReleaser pushes PKGBUILD automatically      |
+| NUR                                   | NixOS + nix on any distro     | `nix:`                               | **ship** — low effort, growing audience                  |
+| Docker image (`litevolve:latest`)     | Linux glibc                   | `dockers:` (glibc build target)      | **ship**                                                 |
+| Docker image (`litevolve:musl`)       | Alpine-based                  | `dockers:` (musl build target)       | **ship** — needed for multi-stage builds                 |
+| npm packages                          | Bun / Node / Deno             | separate `npm publish` CI step       | **ship** — outside GoReleaser scope                      |
+| snap                                  | cross-distro (Ubuntu-first)   | `snapcrafts:`                        | **test first** — sandbox may block SQLite file access    |
+| flatpak                               | cross-distro                  | `flatpaks:`                          | **skip** — sandbox model is wrong for a CLI tool         |
+| `.apk` (Alpine native)                | Alpine                        | `nfpms:` `formats: [apk]`            | **skip** — Docker multi-stage build covers this use case |
+| eopkg                                 | Solus                         | custom publisher                     | **skip** — too niche for the maintenance cost            |
+
+#### Build matrix
+
+`builds:` targets that feed all of the above:
+
+| Target                 | Used by                                               |
+| ---------------------- | ----------------------------------------------------- |
+| `darwin/amd64`         | brew, GitHub release                                  |
+| `darwin/arm64`         | brew, GitHub release                                  |
+| `linux/amd64` (glibc)  | `.deb`, `.rpm`, AUR, Docker `latest`, GitHub release  |
+| `linux/arm64` (glibc)  | `.deb`, `.rpm`, Docker `latest`, GitHub release       |
+| `linux/amd64` (musl)   | Docker `musl`, GitHub release                         |
+| `linux/arm64` (musl)   | Docker `musl`, GitHub release                         |
+
+---
 
 ### Why three packages, not conditional exports on one
 

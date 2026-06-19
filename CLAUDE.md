@@ -26,14 +26,14 @@ Run tests: `make ci_test` (parallel, isolated) or `make test_debug` (with debugg
 
 ### Source layout
 
-| File | Role |
-|---|---|
-| `src/migrate.ts` | Core logic: file discovery, `migrate_up`, `migrate_down`, `migrate_db` (public API) |
-| `src/run_litevolve.ts` | CLI entry point — parses flags and calls `migrate_db` |
-| `src/migration_error.ts` | `migration_error` class (extends `Error`) |
-| `src/index.ts` | Library entry point — re-exports `migrate_db` and `migration_error` |
-| `src/migrate.test.ts` | All tests |
-| `migrations/` | Example ornithology DB (3 versions, up/down/seed files) |
+| File                     | Role                                                                                 |
+| ------------------------ | ------------------------------------------------------------------------------------ |
+| `src/migrate.ts`         | Core logic: file discovery, `migrate_up`, `migrate_down`, `migrate_db` (public API) |
+| `src/run_litevolve.ts`   | CLI entry point — parses flags and calls `migrate_db`                                |
+| `src/migration_error.ts` | `migration_error` class (extends `Error`)                                            |
+| `src/index.ts`           | Library entry point — re-exports `migrate_db` and `migration_error`                  |
+| `src/migrate.test.ts`    | All tests                                                                            |
+| `migrations/`            | Example ornithology DB (3 versions, up/down/seed files)                              |
 
 ### Naming conventions
 
@@ -60,16 +60,16 @@ Examples: `0001_create_initial_schema.sql`, `0042_add_users.down.sql`, `01000_sp
 
 ### Key Makefile targets
 
-| Target | Purpose |
-|---|---|
-| `make ci_test` | Run tests (parallel, isolated) |
-| `make ci_lint` | Biome linter |
-| `make ci_check_build` | Compile check + `tsc --noEmit` |
-| `make ci_sec` | Security audit (prod deps) |
-| `make format` | Auto-fix formatting and linting |
-| `make migrate DB_PATH=<p> VERSION=<n>` | Apply migrations up/down |
-| `make migrate_seeds DB_PATH=<p> VERSION=<n>` | Migrate fresh DB with seeds |
-| `make ci_binary TARGET=<bun-darwin-arm64\|…>` | Compile standalone binary |
+| Target                                          | Purpose                         |
+| ----------------------------------------------- | ------------------------------- |
+| `make ci_test`                                  | Run tests (parallel, isolated)  |
+| `make ci_lint`                                  | Biome linter                    |
+| `make ci_check_build`                           | Compile check + `tsc --noEmit`  |
+| `make ci_sec`                                   | Security audit (prod deps)      |
+| `make format`                                   | Auto-fix formatting and linting |
+| `make migrate DB_PATH=<p> VERSION=<n>`          | Apply migrations up/down        |
+| `make migrate_seeds DB_PATH=<p> VERSION=<n>`    | Migrate fresh DB with seeds     |
+| `make ci_binary TARGET=<bun-darwin-arm64\|…>`   | Compile standalone binary       |
 
 ### Linter
 

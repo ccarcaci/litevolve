@@ -1,0 +1,9 @@
+{
+  "extends": "../../tsconfig.json",
+  "compilerOptions": {
+    "types": ["bun"],
+    "paths": {
+      "litevolve-core": ["../core/src/index.ts"]
+    }
+  }
+}
