@@ -11,8 +11,8 @@ permissions:
   contents: read
 
 jobs:
-  basic_checks:
-    name: basic_checks
+  lint:
+    name: lint
     runs-on: ubuntu-latest
     steps:
       - name: checkout
@@ -22,12 +22,90 @@ jobs:
         with:
           bun-version-file: ".bun-version"
       - name: install dependencies
-        run: make install
-      - name: run ci_checks
-        run: make ci_checks
+        run: bun install
+      - name: lint
+        run: scripts/ci_lint.sh
+
+  check_bun:
+    name: check_bun
+    needs: lint
+    runs-on: ubuntu-latest
+    steps:
+      - name: checkout
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6
+      - name: install bun
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2
+        with:
+          bun-version-file: ".bun-version"
+      - name: install dependencies
+        run: bun install
+      - name: check bun version
+        run: scripts/check_bun_version.sh
+      - name: check dependency updates
+        run: scripts/check_updates.sh
+      - name: build
+        run: scripts/ci_build.sh bun
+      - name: type check
+        run: scripts/ci_types.sh bun
+      - name: security audit
+        run: scripts/ci_sec.sh bun
+      - name: test
+        run: scripts/ci_test.sh bun
+
+  check_node:
+    name: check_node
+    needs: lint
+    runs-on: ubuntu-latest
+    steps:
+      - name: checkout
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6
+      - name: install node
+        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
+        with:
+          node-version-file: ".node-version"
+      - name: install dependencies
+        run: npm install
+      - name: check node version
+        run: scripts/check_node_version.sh
+      - name: check dependency updates
+        run: scripts/check_updates_node.sh
+      - name: build
+        run: scripts/ci_build.sh node
+      - name: type check
+        run: scripts/ci_types.sh node
+      - name: security audit
+        run: scripts/ci_sec.sh node
+      - name: test
+        run: scripts/ci_test.sh node
+
+  check_deno:
+    name: check_deno
+    needs: lint
+    runs-on: ubuntu-latest
+    steps:
+      - name: checkout
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6
+      - name: install deno
+        uses: denoland/setup-deno@667a34cdef165d8d2b2e98dde39547c9daac7282 # v2.0.4
+        with:
+          deno-version-file: ".deno-version"
+      - name: install dependencies
+        run: deno install
+      - name: check deno version
+        run: scripts/check_deno_version.sh
+      - name: check dependency updates
+        run: scripts/check_updates_deno.sh
+      - name: build
+        run: scripts/ci_build.sh deno
+      - name: type check
+        run: scripts/ci_types.sh deno
+      - name: security audit
+        run: scripts/ci_sec.sh deno
+      - name: test
+        run: scripts/ci_test.sh deno
 
   executables_smoke_checks:
-    needs: basic_checks
+    needs: [check_bun, check_node, check_deno]
     name: executables_smoke_checks_(${{ matrix.runner }})
     runs-on: ${{ matrix.runner }}
 
@@ -50,14 +128,14 @@ jobs:
           bun-version-file: ".bun-version"
 
       - name: install dependencies
-        run: make install
+        run: bun install
 
       - name: build runner binaries
-        run: deployment/runners_build.sh
+        run: scripts/runners_build.sh
 
       - name: smoke test runner binaries
         run: |
           for binary in dist/litevolve_*; do
             [ -f "$binary" ] || continue
-            deployment/smoke_test.sh "$(basename "$binary")" "$binary" "$PWD/migrations"
+            scripts/smoke_test.sh "$(basename "$binary")" "$binary" "$PWD/migrations"
           done

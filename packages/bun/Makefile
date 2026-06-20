@@ -1,14 +1,18 @@
 # litevolve: SQLite migration runner
 
 BUN          := bun
-BIOME := bunx biome
+BIOME        := bunx biome
 MAKEFILE_DIR := $(dir $(abspath $(lastword $(MAKEFILE_LIST))))
-ENTRY_POINT  := $(MAKEFILE_DIR)src/run_litevolve.ts
+
+# Workspace layout
+PACKAGES_DIR := packages
+CORE_SRC     := $(PACKAGES_DIR)/core/src
+BUN_SRC      := $(PACKAGES_DIR)/bun/src
+ENTRY_POINT  := $(MAKEFILE_DIR)$(BUN_SRC)/run_litevolve.ts
 
 # Directories
-SRC_DIR := src
-DATA_DIR := data
-DIST_DIR := dist
+DATA_DIR    := data
+DIST_DIR    := dist
 SCRIPTS_DIR := scripts
 
 # Required: provide when calling make
@@ -31,8 +35,8 @@ help: ## show this help message
 
 .PHONY: _check_args
 _check_args:
-	@[ -n "$(DB_PATH)" ]  || (echo "error: DB_PATH is required  (e.g. make migrate DB_PATH=./data/rsvr.db VERSION=1)"; exit 1)
-	@[ -n "$(VERSION)" ]  || (echo "error: VERSION is required  (e.g. make migrate DB_PATH=./data/rsvr.db VERSION=1)"; exit 1)
+	@[ -n "$(DB_PATH)" ] || (echo "error: DB_PATH is required  (e.g. make migrate DB_PATH=./data/rsvr.db VERSION=1)"; exit 1)
+	@[ -n "$(VERSION)" ] || (echo "error: VERSION is required  (e.g. make migrate DB_PATH=./data/rsvr.db VERSION=1)"; exit 1)
 
 .PHONY: migrate
 migrate: _check_args ## apply migrations up/down to VERSION. DB_PATH=<path> VERSION=<n>
@@ -54,17 +58,20 @@ migrate_seeds: _check_args ## migrate fresh DB to VERSION with seeds (--init_see
 ##@ setup and cleanup
 
 .PHONY: install
-install: ## install dependencies using bun
+install: ## install all workspace dependencies
 	@echo "installing dependencies..."
 	@$(BUN) install
+	@echo "Updating biome configuration..."
+	./node_modules/.bin/biome migrate --write
 
 .PHONY: clean
-clean: ## remove node_modules, *.db, data/, dist/
+clean: ## remove node_modules, *.db, data/, dist/, packages/*/dist/
 	@echo "cleaning up..."
 	@rm -rf node_modules
 	@rm -f *.db
 	@rm -rf $(DATA_DIR)
 	@rm -rf $(DIST_DIR)
+	@rm -rf $(PACKAGES_DIR)/*/dist
 	@echo "clean complete!"
 
 .PHONY: clean_all
@@ -74,21 +81,18 @@ clean_all: clean ## clean everything including bun lockfile
 
 ##@ development
 
-
 .PHONY: test
-test: ## run tests with bun native test runner (e.g. make test test_name)
-	@echo "running tests..."
+test: ## run core + bun adapter tests (e.g. make test test_name)
 	@$(MAKE) --no-print-directory ci_test $(if $(filter-out test, $(MAKECMDGOALS)), PATTERN=$(filter-out test, $(MAKECMDGOALS)))
 
 .PHONY: test_debug
-test_debug: ## run tests with debugger (e.g., make test_debug test_name)
-	@echo "running tests..."
+test_debug: ## run core + bun adapter tests with debugger (e.g., make test_debug test_name)
 	@$(MAKE) --no-print-directory ci_test DEBUG=1 $(if $(filter-out test_debug, $(MAKECMDGOALS)), PATTERN=$(filter-out test_debug, $(MAKECMDGOALS)))
 
 .PHONY: format
 format: ## fix formatting, linting (safe fixes), and import sorting with biome
 	@echo "fixing formatting, linting, and import sorting..."
-	@$(BIOME) check --write $(SRC_DIR)/
+	@$(BIOME) check --write $(PACKAGES_DIR)/
 
 ##@ CI checks
 
@@ -103,16 +107,18 @@ UPDATES_CHECK_SCRIPT := $(SCRIPTS_DIR)/check_updates.sh
 ci_check_updates: ## check GitHub for newer versions of bun, dockerfile base image, and npm packages (warning only)
 	@$(UPDATES_CHECK_SCRIPT) --changelog
 
-.PHONY: ci_lint
-ci_lint: ## run biome linter on src/
+.PHONY: ci_check_lint
+ci_check_lint: ## run biome linter on packages/
 	@echo "running biome linter..."
-	@$(BIOME) check $(SRC_DIR)/
+	@$(BIOME) check $(PACKAGES_DIR)/
 
 .PHONY: ci_check_build
-ci_check_build: ## compile src/ with bun without storing output (checks code is runnable)
+ci_check_build: ## compile-check all packages without storing output + tsc type check
 	@echo "checking compilation..."
-	@BUILD_TMP=$$(mktemp -d); $(BUN) build $(SRC_DIR)/index.ts --target bun --outdir $$BUILD_TMP; EXIT=$$?; rm -rf $$BUILD_TMP; exit $$EXIT
-	@$(BUN) tsc --noEmit
+	BUILD_TMP=$$(mktemp -d); \
+		$(BUN) build $(BUN_SRC)/index.ts --bundle --target bun --outdir $$BUILD_TMP && \
+		EXIT=$$?; rm -rf $$BUILD_TMP; exit $$EXIT
+	$(BUN) tsc --noEmit
 
 .PHONY: ci_sec
 ci_sec: ## audit production dependencies for known vulnerabilities (bun audit --prod)
@@ -120,17 +126,17 @@ ci_sec: ## audit production dependencies for known vulnerabilities (bun audit --
 	@$(BUN) audit --prod
 
 PATTERN ?=
-DEBUG ?=
+DEBUG   ?=
 .PHONY: ci_test
-ci_test: ## run tests with bun native test runner (e.g. make test test_name)
-	@echo "running tests..."
-	@$(BUN) test
+ci_test: ## run core + bun adapter tests with bun (e.g. make test test_name)
+	@echo "running tests (bun)..."
+	@$(BUN) test \
 		$(if $(DEBUG),--inspect-wait,--isolate --parallel=4) \
 		$(if $(PATTERN),--test-name-pattern=$(PATTERN)) \
-		$(SRC_DIR)/
+		$(CORE_SRC)/ $(BUN_SRC)/
 
 .PHONY: ci_checks
-ci_checks: ci_check_version ci_check_updates ci_lint ci_check_build ci_sec ci_test ## run ci_check_version ci_check_updates ci_lint ci_check_build ci_sec ci_test in order
+ci_checks: ci_check_version ci_check_updates ci_check_lint ci_check_build ci_sec ci_test ## run all CI checks in order
 	@echo "all CI checks passed!"
 
 ##@ CI gen
@@ -149,7 +155,7 @@ _check_target:
 .PHONY: ci_binary
 ci_binary: _check_target ## compile binary for TARGET. TARGET=<bun-darwin-arm64|bun-darwin-x64[-baseline]|bun-linux-x64[-modern|-baseline|-musl]|bun-linux-arm64[-musl]>
 	@echo "compile binary for $(TARGET)..."
-	@$(BUN) build $(SRC_DIR)/run_litevolve.ts \
+	@$(BUN) build $(BUN_SRC)/run_litevolve.ts \
 		--compile \
 		--target=$(TARGET) \
 		--minify-whitespace \

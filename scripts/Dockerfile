@@ -38,7 +38,7 @@ RUN --mount=type=bind,from=builder,source=/app/dist,target=/dist \
         cp /dist/$binary /usr/local/bin/$binary && chmod +x /usr/local/bin/$binary; \
     done
 COPY migrations/ /migrations/
-COPY deployment/smoke_test.sh /usr/local/bin/smoke_test.sh
+COPY scripts/smoke_test.sh /usr/local/bin/smoke_test.sh
 RUN chmod +x /usr/local/bin/smoke_test.sh
 
 #  -- Linux musl (Alpine) ---
@@ -50,7 +50,7 @@ RUN --mount=type=bind,from=builder,source=/app/dist,target=/dist \
         cp /dist/$binary /usr/local/bin/$binary && chmod +x /usr/local/bin/$binary; \
     done
 COPY migrations/ /migrations/
-COPY deployment/smoke_test.sh /usr/local/bin/smoke_test.sh
+COPY scripts/smoke_test.sh /usr/local/bin/smoke_test.sh
 RUN chmod +x /usr/local/bin/smoke_test.sh
 
 #  -- Darwin ---

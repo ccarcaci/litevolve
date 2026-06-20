@@ -1,0 +1,87 @@
+{
+  "$schema": "https://biomejs.dev/schemas/2.5.0/schema.json",
+  "linter": {
+    "enabled": true,
+    "rules": {
+      "preset": "recommended",
+      "style": {
+        "useNamingConvention": {
+          "level": "error",
+          "options": {
+            "strictCase": false,
+            "conventions": [
+              {
+                "selector": {
+                  "kind": "function"
+                },
+                "formats": ["snake_case"]
+              },
+              {
+                "selector": {
+                  "kind": "functionParameter"
+                },
+                "formats": ["snake_case"]
+              },
+              {
+                "selector": {
+                  "kind": "variable"
+                },
+                "formats": ["snake_case", "CONSTANT_CASE"]
+              },
+              {
+                "selector": {
+                  "kind": "typeProperty"
+                },
+                "formats": ["snake_case"]
+              },
+              {
+                "selector": {
+                  "kind": "objectLiteralProperty"
+                },
+                "formats": ["snake_case", "camelCase", "PascalCase"]
+              },
+              {
+                "selector": {
+                  "kind": "typeLike"
+                },
+                "formats": ["snake_case"]
+              },
+              {
+                "selector": {
+                  "kind": "class"
+                },
+                "formats": ["snake_case"]
+              },
+              {
+                "selector": {
+                  "kind": "classMethod"
+                },
+                "formats": ["snake_case"]
+              },
+              {
+                "selector": {
+                  "kind": "classProperty"
+                },
+                "formats": ["snake_case"]
+              }
+            ]
+          }
+        }
+      },
+      "complexity": {
+        "useArrowFunction": "error"
+      }
+    }
+  },
+  "formatter": {
+    "enabled": true,
+    "indentStyle": "space",
+    "indentWidth": 2,
+    "lineWidth": 100
+  },
+  "javascript": {
+    "formatter": {
+      "semicolons": "asNeeded"
+    }
+  }
+}

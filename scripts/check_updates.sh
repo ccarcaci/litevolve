@@ -1,16 +1,11 @@
 #!/bin/bash
 
 # Check for dependency updates and new Bun version
-# Usage: ./scripts/check_updates.sh [--changelog]
-#
-# --changelog  Show changelog links and release notes for outdated packages
+# Usage: ./scripts/check_updates.sh
 
 set -e
 
-SHOW_CHANGELOG=false
-if [ "$1" = "--changelog" ]; then
-  SHOW_CHANGELOG=true
-fi
+FAILED=0
 
 BOLD="\033[1m"
 CYAN="\033[36m"
@@ -28,26 +23,25 @@ if [ -z "$LATEST_BUN" ]; then
 elif [ "$CURRENT_BUN" = "$LATEST_BUN" ]; then
   echo -e "  Bun: ${GREEN}${CURRENT_BUN} (up to date)${RESET}"
 else
+  FAILED=1
   echo -e "  Bun: ${YELLOW}${CURRENT_BUN} -> ${LATEST_BUN} (update available)${RESET}"
   echo "  Update: bun upgrade --version ${LATEST_BUN}"
   echo "  Then:   echo ${LATEST_BUN} > .bun-version"
-  if [ "$SHOW_CHANGELOG" = true ]; then
-    echo ""
-    echo -e "  ${CYAN}Release notes:${RESET}"
-    RELEASE_BODY=$(curl -s https://api.github.com/repos/oven-sh/bun/releases/latest | grep -o '"body": ".*"' | head -1 | cut -d'"' -f4 | head -c 500)
-    if [ -n "$RELEASE_BODY" ]; then
-      echo "$RELEASE_BODY" | sed 's/\\r\\n/\n/g' | sed 's/\\n/\n/g' | head -20 | sed 's/^/    /'
-      echo "    ..."
-    fi
-    echo -e "  ${CYAN}Full changelog: https://github.com/oven-sh/bun/releases/latest${RESET}"
+  echo ""
+  echo -e "  ${CYAN}Release notes:${RESET}"
+  RELEASE_BODY=$(curl -s https://api.github.com/repos/oven-sh/bun/releases/latest | grep -o '"body": ".*"' | head -1 | cut -d'"' -f4 | head -c 500)
+  if [ -n "$RELEASE_BODY" ]; then
+    echo "$RELEASE_BODY" | sed 's/\\r\\n/\n/g' | sed 's/\\n/\n/g' | head -20 | sed 's/^/    /'
+    echo "    ..."
   fi
+  echo -e "  ${CYAN}Full changelog: https://github.com/oven-sh/bun/releases/latest${RESET}"
 fi
 
 echo ""
 
 # --- Dockerfile base image check ---
 echo -e "${BOLD}Checking Dockerfile base image...${RESET}"
-DOCKERFILE="local_infra/Dockerfile"
+DOCKERFILE="scripts/Dockerfile"
 if [ -f "$DOCKERFILE" ]; then
   PINNED_TAG=$(grep -oE 'oven/bun:[^[:space:]]+' "$DOCKERFILE" | head -1 | cut -d: -f2 || true)
   PINNED_MINOR=$(echo "$PINNED_TAG" | grep -oE '^[0-9]+\.[0-9]+' || true)
@@ -77,20 +71,11 @@ OUTDATED_OUTPUT=$(bun outdated 2>&1) || true
 
 if echo "$OUTDATED_OUTPUT" | grep -q "All dependencies are up to date"; then
   echo -e "  ${GREEN}All dependencies are up to date${RESET}"
-  exit 0
-fi
-
-if [ -z "$OUTDATED_OUTPUT" ]; then
+elif [ -z "$OUTDATED_OUTPUT" ]; then
   echo -e "  ${GREEN}All dependencies are up to date${RESET}"
-  exit 0
-fi
-
-echo "$OUTDATED_OUTPUT"
-
-if [ "$SHOW_CHANGELOG" = false ]; then
-  echo ""
-  echo "Run 'make updates-changelog' to see changelogs for outdated packages"
-  exit 0
+else
+  FAILED=1
+  echo "$OUTDATED_OUTPUT"
 fi
 
 # --- Fetch changelogs for outdated packages ---
@@ -103,7 +88,7 @@ echo -e "${BOLD}Fetching changelogs...${RESET}"
 PACKAGES=$(echo "$OUTDATED_OUTPUT" | grep -E '^\| [@a-z]' | awk -F'|' '{gsub(/^ +| +$| \(dev\)/, "", $2); print $2}' || true)
 
 if [ -z "$PACKAGES" ]; then
-  exit 0
+  exit "$FAILED"
 fi
 
 # Map package names to GitHub repos
@@ -141,3 +126,4 @@ for pkg in $PACKAGES; do
 done
 
 echo ""
+exit "$FAILED"

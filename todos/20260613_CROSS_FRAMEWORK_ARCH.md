@@ -200,6 +200,29 @@ The `core` package is `private` — never published to npm. Each runtime package
 
 `bun build --bundle` will include the `core/` content in the bundle.
 
+### How workspace and bundling work together
+
+**Why three separate packages instead of one with conditional exports:**
+
+The root problem is `better-sqlite3`: a native addon that requires a `postinstall` compile step. npm has no `runtime` field — only `os` and `cpu` — so there is no way to say "install this dep only on Deno". Any package that lists `better-sqlite3` in `dependencies` or `optionalDependencies` installs it on every consumer, including Bun and Node users who never use it. Three packages is the only escape hatch: each has exactly the deps its runtime needs and nothing else.
+
+**Why a workspace instead of just copying the shared code:**
+
+The migration logic (`migrate.ts`, `migration_error.ts`) is identical across all three runtime packages. Duplicating it would mean three diverging copies to maintain. `packages/core` holds it once. The `workspace:*` protocol in each runtime package's `dependencies` is a local symlink — not an npm reference — so `litevolve-core` never needs to be published.
+
+**How `bun build --bundle` collapses it:**
+
+At build time, `bun build --bundle` starts from the runtime package's entry point, follows every import, crosses the workspace boundary into `packages/core/src/`, and **inlines all of core's code** directly into the output file:
+
+```
+packages/core/src/migrate.ts         ──┐
+packages/core/src/migration_error.ts ──┤── bun build --bundle ──► packages/<runtime>/dist/index.js
+packages/<runtime>/src/adapter.ts    ──┤                           (single self-contained file)
+packages/<runtime>/src/index.ts      ──┘
+```
+
+The output `dist/index.js` is fully self-contained: runtime adapter + all migration logic, no external references to `litevolve-core`. The published npm package has **no `dependencies` entry for `litevolve-core`** — it was consumed at build time and is gone. `litevolve-core` never appears on npm and never lands in any consumer's `node_modules`.
+
 ### API change
 
 `migrate_db` will use the `db_adapter` interface. During the bundling, an implementation of it will be provided.
