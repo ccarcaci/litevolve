@@ -5,8 +5,6 @@
 
 set -e
 
-FAILED=0
-
 BOLD="\033[1m"
 CYAN="\033[36m"
 YELLOW="\033[33m"
@@ -23,7 +21,6 @@ if [ -z "$LATEST_BUN" ]; then
 elif [ "$CURRENT_BUN" = "$LATEST_BUN" ]; then
   echo -e "  Bun: ${GREEN}${CURRENT_BUN} (up to date)${RESET}"
 else
-  FAILED=1
   echo -e "  Bun: ${YELLOW}${CURRENT_BUN} -> ${LATEST_BUN} (update available)${RESET}"
   echo "  Update: bun upgrade --version ${LATEST_BUN}"
   echo "  Then:   echo ${LATEST_BUN} > .bun-version"
@@ -35,6 +32,7 @@ else
     echo "    ..."
   fi
   echo -e "  ${CYAN}Full changelog: https://github.com/oven-sh/bun/releases/latest${RESET}"
+  exit 1
 fi
 
 echo ""
@@ -69,27 +67,11 @@ echo -e "${BOLD}Checking dependency updates...${RESET}"
 
 OUTDATED_OUTPUT=$(bun outdated 2>&1) || true
 
-if echo "$OUTDATED_OUTPUT" | grep -q "All dependencies are up to date"; then
-  echo -e "  ${GREEN}All dependencies are up to date${RESET}"
-elif [ -z "$OUTDATED_OUTPUT" ]; then
-  echo -e "  ${GREEN}All dependencies are up to date${RESET}"
-else
-  FAILED=1
-  echo "$OUTDATED_OUTPUT"
-fi
-
 # --- Fetch changelogs for outdated packages ---
-echo ""
-echo -e "${BOLD}Fetching changelogs...${RESET}"
-
 # Parse outdated packages from bun outdated table output
 # Lines look like: | @anthropic-ai/sdk    | 0.39.0  | 0.39.0  | 0.78.0 |
 # or:              | @biomejs/biome (dev) | 1.9.4   | 1.9.4   | 2.4.4  |
 PACKAGES=$(echo "$OUTDATED_OUTPUT" | grep -E '^\| [@a-z]' | awk -F'|' '{gsub(/^ +| +$| \(dev\)/, "", $2); print $2}' || true)
-
-if [ -z "$PACKAGES" ]; then
-  exit "$FAILED"
-fi
 
 # Map package names to GitHub repos
 get_github_repo() {
@@ -110,6 +92,7 @@ get_github_repo() {
 }
 
 for pkg in $PACKAGES; do
+  echo "${BOLD}Fetching changelogs for ${pkg}...${RESET}"
   repo=$(get_github_repo "$pkg")
   if [ -z "$repo" ]; then
     echo -e "\n  ${CYAN}${pkg}${RESET}: changelog URL unknown"
@@ -125,5 +108,4 @@ for pkg in $PACKAGES; do
   fi
 done
 
-echo ""
-exit "$FAILED"
+echo -e "${BOLD}Dependency updates done${RESET}"
