@@ -4,6 +4,6 @@
   "private": true,
   "type": "module",
   "devDependencies": {
-    "@types/node": "26.0.0"
+    "@types/node": "26.0.1"
   }
 }
