@@ -4,8 +4,5 @@
     "config:recommended",
     "helpers:pinGitHubActionDigests"
   ],
-  "commitMessagePrefix": "renovate/",
-  "gpg": {
-    "enabled": true
-  }
+  "commitMessagePrefix": "renovate/"
 }
