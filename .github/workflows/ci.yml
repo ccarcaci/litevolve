@@ -38,8 +38,7 @@ jobs:
         with:
           bun-version-file: ".bun-version"
       - name: install dependencies
-        run: bun install
-        working-directory: ./packages/bun
+        run: cd packages/bun && bun install
       - name: check bun version
         run: scripts/check_bun_version.sh
       - name: check dependency updates
