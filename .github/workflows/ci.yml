@@ -23,6 +23,7 @@ jobs:
           bun-version-file: ".bun-version"
       - name: install dependencies
         run: bun install
+        working-directory: packages/bun
       - name: lint
         run: scripts/ci_lint.sh
 
@@ -38,7 +39,8 @@ jobs:
         with:
           bun-version-file: ".bun-version"
       - name: install dependencies
-        run: cd packages/bun && bun install
+        run: bun install
+        working-directory: packages/bun
       - name: check bun version
         run: scripts/check_bun_version.sh
       - name: check dependency updates
@@ -65,7 +67,7 @@ jobs:
           node-version-file: ".node-version"
       - name: install dependencies
         run: npm install
-        working-directory: ./packages/node
+        working-directory: packages/node
       - name: check node version
         run: scripts/check_node_version.sh
       - name: check dependency updates
@@ -92,7 +94,7 @@ jobs:
           deno-version-file: ".deno-version"
       - name: install dependencies
         run: deno install
-        working-directory: ./packages/deno
+        working-directory: packages/deno
       - name: check deno version
         run: scripts/check_deno_version.sh
       - name: check dependency updates
