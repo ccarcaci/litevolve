@@ -10,7 +10,7 @@ FRAMEWORK="$1"
 echo "$FRAMEWORK security auditing"
 case "$FRAMEWORK" in
   bun|node|deno)
-    (cd "packages/$FRAMEWORK" && bun audit)
+    (cd "runtimes/$FRAMEWORK" && bun audit)
     ;;
   *)
     echo "Usage: $0 <bun|node|deno>"

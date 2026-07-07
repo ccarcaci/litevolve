@@ -26,6 +26,8 @@ jobs:
         working-directory: packages/bun
       - name: lint
         run: scripts/ci_lint.sh
+      - name: core align
+        run: scripts/ci_check_align.sh
 
   check_bun:
     name: check_bun
@@ -42,9 +44,9 @@ jobs:
         run: bun install
         working-directory: packages/bun
       - name: check bun version
-        run: scripts/check_bun_version.sh
+        run: scripts/ci_check_bun_version.sh
       - name: check dependency updates
-        run: scripts/check_updates.sh
+        run: scripts/ci_check_updates_bun.sh
       - name: build
         run: scripts/ci_build.sh bun
       - name: type check
@@ -69,9 +71,9 @@ jobs:
         run: npm install
         working-directory: packages/node
       - name: check node version
-        run: scripts/check_node_version.sh
+        run: scripts/ci_check_node_version.sh
       - name: check dependency updates
-        run: scripts/check_updates_node.sh
+        run: scripts/ci_check_updates_node.sh
       - name: build
         run: scripts/ci_build.sh node
       - name: type check
@@ -96,9 +98,9 @@ jobs:
         run: deno install
         working-directory: packages/deno
       - name: check deno version
-        run: scripts/check_deno_version.sh
+        run: scripts/ci_check_deno_version.sh
       - name: check dependency updates
-        run: scripts/check_updates_deno.sh
+        run: scripts/ci_check_updates_deno.sh
       - name: build
         run: scripts/ci_build.sh deno
       - name: type check

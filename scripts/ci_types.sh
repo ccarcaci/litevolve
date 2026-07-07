@@ -10,13 +10,13 @@ FRAMEWORK="$1"
 echo "TypeScript compilation for $FRAMEWORK"
 case "$FRAMEWORK" in
   bun)
-    bunx tsc --noEmit -p packages/bun/tsconfig.json
+    bunx tsc --noEmit -p runtimes/bun/tsconfig.json
     ;;
   node)
-    bunx tsc --noEmit -p packages/node/tsconfig.json
+    bunx tsc --noEmit -p runtimes/node/tsconfig.json
     ;;
   deno)
-    bunx tsc --noEmit -p packages/deno/tsconfig.json
+    bunx tsc --noEmit -p runtimes/deno/tsconfig.json
     ;;
   *)
     echo "Usage: $0 <bun|node|deno>"

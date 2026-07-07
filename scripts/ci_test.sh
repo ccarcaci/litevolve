@@ -10,13 +10,13 @@ FRAMEWORK="$1"
 echo "executing $FRAMEWORK tests"
 case "$FRAMEWORK" in
   bun)
-    bun test --isolate --parallel=4 packages/core/src/ packages/bun/src/
+    bun test --isolate --parallel=4 runtimes/bun/
     ;;
   node)
-    node --test packages/node/src/
+    node --test runtimes/node/
     ;;
   deno)
-    deno test --allow-read --allow-write packages/deno/src/
+    deno test --allow-read --allow-write runtimes/deno/
     ;;
   *)
     echo "Usage: $0 <bun|node|deno>"

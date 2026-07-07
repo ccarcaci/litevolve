@@ -1,9 +1,0 @@
-{
-  "name": "litevolve-core",
-  "version": "0.0.1",
-  "private": true,
-  "type": "module",
-  "devDependencies": {
-    "@types/node": "26.0.1"
-  }
-}

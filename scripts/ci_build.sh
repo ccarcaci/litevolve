@@ -10,24 +10,22 @@ FRAMEWORK="$1"
 echo "$FRAMEWORK build"
 case "$FRAMEWORK" in
   bun)
-    bun build packages/bun/src/index.ts \
+    bun build runtimes/bun/src/index.ts \
       --bundle --target bun \
-      --outdir packages/bun/dist/
+      --outdir runtimes/bun/dist/
     ;;
   node)
     # ponytail: tsc emits .d.ts only (emitDeclarationOnly); bun build bundles litevolve-core into JS
-    bunx tsc --build packages/node/tsconfig.json
-    bun build packages/node/src/index.ts \
+    bun build runtimes/node/src/index.ts \
       --bundle --target node \
-      --outdir packages/node/dist/
+      --outdir runtimes/node/dist/
     ;;
   deno)
-    bun build packages/deno/src/index.ts \
+    bun build runtimes/deno/src/index.ts \
       --bundle --target node \
       --external better-sqlite3 \
-      --outdir packages/deno/dist/
-    bunx tsc --build packages/deno/tsconfig.json
-    deno check packages/deno/src/index.ts
+      --outdir runtimes/deno/dist/
+    deno check runtimes/deno/src/index.ts
     ;;
   *)
     echo "Usage: $0 <bun|node|deno>"

@@ -5,30 +5,26 @@ BIOME        := bunx biome
 MAKEFILE_DIR := $(dir $(abspath $(lastword $(MAKEFILE_LIST))))
 
 # Workspace layout
-PACKAGES_DIR := packages
-CORE_SRC     := $(PACKAGES_DIR)/core/src
-BUN_SRC      := $(PACKAGES_DIR)/bun/src
-ENTRY_POINT  := $(MAKEFILE_DIR)$(BUN_SRC)/run_litevolve.ts
+RUNTIMES_DIR  := $(MAKEFILE_DIR)runtimes
+BUN_DIR       := $(RUNTIMES_DIR)/bun
+BUN_SRC       := $(BUN_DIR)/src
+ENTRY_POINT   := $(MAKEFILE_DIR)$(BUN_SRC)/run_litevolve.ts
 
 # Directories
-DATA_DIR    := data
-DIST_DIR    := dist
-SCRIPTS_DIR := scripts
+SCRIPTS_DIR := $(MAKEFILE_DIR)scripts
 
 # Required: provide when calling make
 DB_PATH         ?=
 VERSION         ?=
 MIGRATIONS_PATH ?= $(MAKEFILE_DIR)
 
+##@ litevolve - SQLite migration runner
+##@ usage: make [target] DB_PATH=<path> VERSION=<n>
+
 .DEFAULT_GOAL := help
 
 .PHONY: help
 help: ## show this help message
-	@echo "litevolve - SQLite migration runner"
-	@echo ""
-	@echo "usage: make [target] DB_PATH=<path> VERSION=<n>"
-	@echo ""
-	@echo "available targets:"
 	@awk 'BEGIN {FS = ":.*##"; printf ""} /^[a-zA-Z_-]+:.*?##/ { printf "  \033[36m%-20s\033[0m %s\n", $$1, $$2 } /^##@/ { printf "\n\033[1m%s\033[0m\n", substr($$0, 5) } ' $(MAKEFILE_LIST)
 
 ##@ operate
@@ -39,104 +35,111 @@ _check_args:
 	@[ -n "$(VERSION)" ] || (echo "error: VERSION is required  (e.g. make migrate DB_PATH=./data/rsvr.db VERSION=1)"; exit 1)
 
 .PHONY: migrate
+.ONESHELL:
 migrate: _check_args ## apply migrations up/down to VERSION. DB_PATH=<path> VERSION=<n>
 	@echo "migrating $(DB_PATH) to version $(VERSION)..."
+	@cd $(BUN_DIR)
 	@$(BUN) run $(ENTRY_POINT) \
 		--db_path=$(DB_PATH) \
 		--migrations_path=$(MIGRATIONS_PATH) \
 		--apply_version=$(VERSION)
+	@cd $(MAKEFILE_DIR)
 
 .PHONY: migrate_seeds
+.ONESHELL:
 migrate_seeds: _check_args ## migrate fresh DB to VERSION with seeds (--init_seeds). DB_PATH=<path> VERSION=<n>
 	@echo "migrating $(DB_PATH) to version $(VERSION) with init_seeds..."
+	@cd $(BUN_DIR)
 	@$(BUN) run $(ENTRY_POINT) \
 		--db_path=$(DB_PATH) \
 		--migrations_path=$(MIGRATIONS_PATH) \
 		--apply_version=$(VERSION) \
 		--init_seeds
+	@cd $(MAKEFILE_DIR)
 
 ##@ setup and cleanup
 
 .PHONY: install
-install: ## install all workspace dependencies
+.ONESHELL:
+install: ## install Bun dependencies for development purposes
+	@cd $(BUN_DIR)
 	@echo "installing dependencies..."
 	@$(BUN) install
 	@echo "Updating biome configuration..."
 	./node_modules/.bin/biome migrate --write
+	@cd $(MAKEFILE_DIR)
 
 .PHONY: clean
+.ONESHELL:
 clean: ## remove node_modules, *.db, data/, dist/, packages/*/dist/
+	@cd $(BUN_DIR)
 	@echo "cleaning up..."
 	@rm -rf node_modules
-	@rm -f *.db
-	@rm -rf $(DATA_DIR)
-	@rm -rf $(DIST_DIR)
-	@rm -rf $(PACKAGES_DIR)/*/dist
-	@echo "clean complete!"
-
-.PHONY: clean_all
-clean_all: clean ## clean everything including bun lockfile
 	@rm -f bun.lockb
-	@echo "deep clean complete!"
+	@rm -f *.db
+	@cd $(MAKEFILE_DIR)
+	@rm -rf $(RUNTIMES_DIR)/*/dist
+	@echo "clean complete!"
 
 ##@ development
 
+.PHONY: align_core
+align_core: ## align core directory with node and deno versions, bun version is the master one
+	cp -R $(BUN_SRC)/core/* $(RUNTIMES_DIR)/node/src/core
+	cp -R $(BUN_SRC)/core/* $(RUNTIMES_DIR)/deno/src/core
+
 .PHONY: test
 test: ## run core + bun adapter tests (e.g. make test test_name)
-	@$(MAKE) --no-print-directory ci_test $(if $(filter-out test, $(MAKECMDGOALS)), PATTERN=$(filter-out test, $(MAKECMDGOALS)))
+	@$(BUN) test \
+		$(if $1, --test-name-pattern=$1) \
+		$(BUN_SRC)
 
 .PHONY: test_debug
 test_debug: ## run core + bun adapter tests with debugger (e.g., make test_debug test_name)
-	@$(MAKE) --no-print-directory ci_test DEBUG=1 $(if $(filter-out test_debug, $(MAKECMDGOALS)), PATTERN=$(filter-out test_debug, $(MAKECMDGOALS)))
+	@$(BUN) test \
+		--inspect-wait --isolate --parallel=4 \
+		$(if $1, --test-name-pattern=$1) \
+		$(BUN_SRC)
 
 .PHONY: format
 format: ## fix formatting, linting (safe fixes), and import sorting with biome
 	@echo "fixing formatting, linting, and import sorting..."
-	@$(BIOME) check --write $(PACKAGES_DIR)/
+	@$(BIOME) check --write $(RUNTIMES_DIR)/
 
 ##@ CI checks
 
-VERSION_CHECK_SCRIPT := $(SCRIPTS_DIR)/check_bun_version.sh
 .PHONY: ci_check_version
 ci_check_version: ## check that installed bun version matches .bun_version
 	@echo "checking bun version..."
-	@$(VERSION_CHECK_SCRIPT)
+	@$(SCRIPTS_DIR)/ci_check_bun_version.sh
 
-UPDATES_CHECK_SCRIPT := $(SCRIPTS_DIR)/check_updates.sh
+.PHONY: ci_check_align
+ci_check_align: ## check that node/core/src and deno/core/src are aligned with bun/core/src
+	@$(SCRIPTS_DIR)/ci_check_align.sh
+
 .PHONY: ci_check_updates
 ci_check_updates: ## check GitHub for newer versions of bun, dockerfile base image, and npm packages (warning only)
-	@$(UPDATES_CHECK_SCRIPT) --changelog
+	@$(SCRIPTS_DIR)/ci_check_updates_bun.sh
 
 .PHONY: ci_check_lint
 ci_check_lint: ## run biome linter on packages/
-	@echo "running biome linter..."
-	@$(BIOME) check $(PACKAGES_DIR)/
+	@$(SCRIPTS_DIR)/ci_lint.sh
 
 .PHONY: ci_check_build
 ci_check_build: ## compile-check all packages without storing output + tsc type check
-	@echo "checking compilation..."
-	BUILD_TMP=$$(mktemp -d); \
-		$(BUN) build $(BUN_SRC)/index.ts --bundle --target bun --outdir $$BUILD_TMP && \
-		EXIT=$$?; rm -rf $$BUILD_TMP; exit $$EXIT
-	$(BUN) tsc --noEmit
+	@$(SCRIPTS_DIR)/ci_build.sh bun
+	@$(SCRIPTS_DIR)/ci_types.sh bun
 
 .PHONY: ci_sec
 ci_sec: ## audit production dependencies for known vulnerabilities (bun audit --prod)
-	@echo "running security audit (production deps)..."
-	@$(BUN) audit --prod
+	@$(SCRIPTS_DIR)/ci_sec.sh bun
 
-PATTERN ?=
-DEBUG   ?=
 .PHONY: ci_test
-ci_test: ## run core + bun adapter tests with bun (e.g. make test test_name)
-	@echo "running tests (bun)..."
-	@$(BUN) test \
-		$(if $(DEBUG),--inspect-wait,--isolate --parallel=4) \
-		$(if $(PATTERN),--test-name-pattern=$(PATTERN)) \
-		$(CORE_SRC)/ $(BUN_SRC)/
+ci_test: ## run core + bun adapter tests with bun
+	@$(SCRIPTS_DIR)/ci_test.sh bun
 
 .PHONY: ci_checks
-ci_checks: ci_check_version ci_check_updates ci_check_lint ci_check_build ci_sec ci_test ## run all CI checks in order
+ci_checks: ci_check_version ci_check_align ci_check_updates ci_check_lint ci_check_build ci_sec ci_test ## run all CI checks in order
 	@echo "all CI checks passed!"
 
 ##@ CI gen
