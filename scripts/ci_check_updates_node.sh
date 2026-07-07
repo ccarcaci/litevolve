@@ -6,13 +6,13 @@
 
 set -e
 
-OUTDATED=$(npm outdated --prefix packages/node 2>&1) || true
+OUTDATED=$(npm outdated --prefix runtimes/node 2>&1) || true
 
 if [ -n "$OUTDATED" ]; then
   echo "$OUTDATED"
   echo ""
-  echo "ERROR: outdated dependencies in packages/node — update package.json and run bun install"
+  echo "ERROR: outdated dependencies in runtimes/node — update package.json and run bun install"
   exit 1
 fi
 
-echo "packages/node: all dependencies up to date"
+echo "runtimes/node: all dependencies up to date"

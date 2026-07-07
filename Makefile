@@ -8,7 +8,7 @@ MAKEFILE_DIR := $(dir $(abspath $(lastword $(MAKEFILE_LIST))))
 RUNTIMES_DIR  := $(MAKEFILE_DIR)runtimes
 BUN_DIR       := $(RUNTIMES_DIR)/bun
 BUN_SRC       := $(BUN_DIR)/src
-ENTRY_POINT   := $(MAKEFILE_DIR)$(BUN_SRC)/run_litevolve.ts
+ENTRY_POINT   := $(BUN_SRC)/run_litevolve.ts
 
 # Directories
 SCRIPTS_DIR := $(MAKEFILE_DIR)scripts
@@ -71,7 +71,7 @@ install: ## install Bun dependencies for development purposes
 
 .PHONY: clean
 .ONESHELL:
-clean: ## remove node_modules, *.db, data/, dist/, packages/*/dist/
+clean: ## remove node_modules, bun.lockb, *.db, runtimes/*/dist/
 	@cd $(BUN_DIR)
 	@echo "cleaning up..."
 	@rm -rf node_modules
@@ -89,17 +89,21 @@ align_core: ## align core directory with node and deno versions, bun version is 
 	cp -R $(BUN_SRC)/core/* $(RUNTIMES_DIR)/deno/src/core
 
 .PHONY: test
-test: ## run core + bun adapter tests (e.g. make test test_name)
+test: ## run core + bun adapter tests (e.g. make test <name>)
 	@$(BUN) test \
-		$(if $1, --test-name-pattern=$1) \
+		$(if $(filter-out test,$(MAKECMDGOALS)),--test-name-pattern=$(filter-out test,$(MAKECMDGOALS))) \
 		$(BUN_SRC)
 
 .PHONY: test_debug
-test_debug: ## run core + bun adapter tests with debugger (e.g., make test_debug test_name)
+test_debug: ## run core + bun adapter tests with debugger (e.g. make test_debug <name>)
 	@$(BUN) test \
-		--inspect-wait --isolate --parallel=4 \
-		$(if $1, --test-name-pattern=$1) \
+		--inspect-wait \
+		$(if $(filter-out test_debug,$(MAKECMDGOALS)),--test-name-pattern=$(filter-out test_debug,$(MAKECMDGOALS))) \
 		$(BUN_SRC)
+
+ifneq ($(filter test test_debug,$(MAKECMDGOALS)),)
+%: ;
+endif
 
 .PHONY: format
 format: ## fix formatting, linting (safe fixes), and import sorting with biome
@@ -122,7 +126,7 @@ ci_check_updates: ## check GitHub for newer versions of bun, dockerfile base ima
 	@$(SCRIPTS_DIR)/ci_check_updates_bun.sh
 
 .PHONY: ci_check_lint
-ci_check_lint: ## run biome linter on packages/
+ci_check_lint: ## run biome linter on runtimes/
 	@$(SCRIPTS_DIR)/ci_lint.sh
 
 .PHONY: ci_check_build
@@ -155,6 +159,7 @@ _check_target:
 	@[ -n "$(TARGET)" ] || (echo "error: TARGET is required (allowed: $(VALID_TARGETS))"; exit 1)
 	@[ -n "$(filter $(TARGET),$(VALID_TARGETS))" ] || (echo "error: invalid TARGET '$(TARGET)' (allowed: $(VALID_TARGETS))"; exit 1)
 
+DIST_DIR := dist
 .PHONY: ci_binary
 ci_binary: _check_target ## compile binary for TARGET. TARGET=<bun-darwin-arm64|bun-darwin-x64[-baseline]|bun-linux-x64[-modern|-baseline|-musl]|bun-linux-arm64[-musl]>
 	@echo "compile binary for $(TARGET)..."

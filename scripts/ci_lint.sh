@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Run Biome linter across all packages
+# Run Biome linter across all runtimes
 # Usage: ./scripts/ci_lint.sh
 
 set -e
