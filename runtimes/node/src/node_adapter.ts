@@ -1,5 +1,5 @@
 import { DatabaseSync } from "node:sqlite"
-import type { db_adapter } from "litevolve-core"
+import type { db_adapter } from "./core/db_adapter"
 
 // ponytail: node:sqlite uses prepare() not query(), and exec() not run() for parameterless SQL
 export class node_db_adapter implements db_adapter {

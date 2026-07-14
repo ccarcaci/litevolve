@@ -1,6 +1,6 @@
 import { parseArgs } from "node:util"
 import { migrate_db } from "./index"
-import { migration_error } from "./index"
+import { migration_error } from "./core"
 
 type migration_configs_type = {
   init_seeds: boolean
