@@ -1,7 +1,7 @@
 import { existsSync, readdirSync, readFileSync } from "node:fs"
 import { resolve } from "node:path"
-import type { db_adapter } from "./db_adapter.js"
-import { migration_error } from "./migration_error.js"
+import type { db_adapter } from "./db_adapter"
+import { migration_error } from "./migration_error"
 
 type migration_file_type = {
   version: number

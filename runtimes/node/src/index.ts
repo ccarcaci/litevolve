@@ -1,9 +1,7 @@
 import { DatabaseSync } from "node:sqlite"
 import { existsSync } from "node:fs"
-import { migrate_with_adapter } from "litevolve-core"
-import { node_db_adapter } from "./node_adapter.js"
-
-export { migration_error } from "litevolve-core"
+import { migrate_with_adapter } from "./core"
+import { node_db_adapter } from "./node_adapter"
 
 export const migrate_db = (
   apply_version: number,

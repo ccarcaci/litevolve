@@ -1,4 +1,4 @@
-import { DatabaseSync } from "node:sqlite"
+import { DatabaseSync, type SQLInputValue } from "node:sqlite"
 import type { db_adapter } from "./core/db_adapter"
 
 // ponytail: node:sqlite uses prepare() not query(), and exec() not run() for parameterless SQL
@@ -12,9 +12,11 @@ export class node_db_adapter implements db_adapter {
   query<T>(sql: string): { get(...params: unknown[]): T | null; run(...params: unknown[]): void } {
     const stmt = this.db.prepare(sql)
     return {
-      get: (...params: unknown[]) => (stmt.get(...params) as T | undefined) ?? null,
+      // ponytail: db_adapter's contract is unknown[]; node:sqlite alone demands SQLInputValue
+      get: (...params: unknown[]) =>
+        (stmt.get(...(params as SQLInputValue[])) as T | undefined) ?? null,
       run: (...params: unknown[]) => {
-        stmt.run(...params)
+        stmt.run(...(params as SQLInputValue[]))
       },
     }
   }
