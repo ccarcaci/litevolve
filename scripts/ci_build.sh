@@ -15,10 +15,8 @@ case "$FRAMEWORK" in
       --outdir runtimes/bun/dist/
     ;;
   node)
-    # ponytail: tsc emits .d.ts only (emitDeclarationOnly); bun build bundles litevolve-core into JS
-    bun build runtimes/node/src/index.ts \
-      --bundle --target node \
-      --outdir runtimes/node/dist/
+    # ponytail: tsc emits .d.ts only (emitDeclarationOnly); esbuild bundles src/core into dist/index.js
+    esbuild src/index.ts --bundle --platform=node --format=esm --external:node:* --outfile=dist/index.js
     ;;
   deno)
     bun build runtimes/deno/src/index.ts \
