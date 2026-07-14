@@ -8,9 +8,17 @@ set -e
 FRAMEWORK="$1"
 
 echo "$FRAMEWORK security auditing"
+cd runtimes/$FRAMEWORK
 case "$FRAMEWORK" in
-  bun|node|deno)
-    (cd "runtimes/$FRAMEWORK" && bun audit)
+  bun)
+    bun audit
+    ;;
+  node)
+    npm audit
+    ;;
+  deno)
+    echo "deno auditing not implemented yet"
+    exit 1
     ;;
   *)
     echo "Usage: $0 <bun|node|deno>"
