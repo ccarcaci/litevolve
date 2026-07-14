@@ -5,7 +5,7 @@ REPO_ROOT     := $(abspath $(MAKEFILE_DIR)../..)
 .PHONY: shell
 shell:
 	docker run --rm -it \
-		-v $(REPO_ROOT):/workspace \
-		-w /workspace \
+		--volume $(REPO_ROOT):/workspace \
+		--workdir /workspace \
 		denoland/deno:$(DENO_VERSION) \
 		/bin/sh
