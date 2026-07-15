@@ -65,13 +65,20 @@ echo ""
 # --- Dependency updates check ---
 echo -e "${BOLD}Checking dependency updates...${RESET}"
 
-OUTDATED_OUTPUT=$(bun outdated 2>&1) || true
+OUTDATED_OUTPUT=$(cd runtimes/bun; bun outdated 2>&1) || true
+
+echo "$OUTDATED_OUTPUT"
 
 # --- Fetch changelogs for outdated packages ---
 # Parse outdated packages from bun outdated table output
 # Lines look like: | @anthropic-ai/sdk    | 0.39.0  | 0.39.0  | 0.78.0 |
 # or:              | @biomejs/biome (dev) | 1.9.4   | 1.9.4   | 2.4.4  |
 PACKAGES=$(echo "$OUTDATED_OUTPUT" | grep -E '^\| [@a-z]' | awk -F'|' '{gsub(/^ +| +$| \(dev\)/, "", $2); print $2}' || true)
+
+if [ -z "$PACKAGES" ]; then
+  echo -e "  ${GREEN}All dependencies are up to date${RESET}"
+  exit 0
+fi
 
 # Map package names to GitHub repos
 get_github_repo() {
@@ -108,4 +115,6 @@ for pkg in $PACKAGES; do
   fi
 done
 
-echo -e "${BOLD}Dependency updates done${RESET}"
+echo ""
+
+exit -1
