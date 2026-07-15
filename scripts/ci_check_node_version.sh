@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Check Node version matches .node-version and is the latest available 22.x LTS
+# Check Node version matches .node-version and is the latest available LTS
 # Usage: ./scripts/check_node_version.sh
 
 set -e
@@ -26,19 +26,19 @@ echo "Node version installed: $CURRENT"
 LATEST=$(curl -sf https://nodejs.org/dist/index.json | python3 -c "
 import sys, json
 data = json.load(sys.stdin)
-jod = [x for x in data if isinstance(x.get('lts'), str) and x['lts'] == 'Jod']
-print(jod[0]['version'].lstrip('v') if jod else '')
+lts = [x for x in data if x.get('lts')]
+print(lts[0]['version'].lstrip('v') if lts else '')
 " 2>/dev/null || true)
 
 if [ -z "$LATEST" ]; then
-  echo "WARNING: Could not fetch latest Node 22 LTS version from nodejs.org"
+  echo "WARNING: Could not fetch latest Node LTS version from nodejs.org"
   exit 0
 fi
 
 if [ "$PINNED" != "$LATEST" ]; then
-  echo "ERROR: Node $PINNED is pinned but $LATEST is the latest Node 22 LTS"
+  echo "ERROR: Node $PINNED is pinned but $LATEST is the latest Node LTS"
   echo "Update .node-version: echo $LATEST > .node-version"
   exit 1
 fi
 
-echo "Node version OK: $CURRENT (latest 22 LTS)"
+echo "Node version OK: $CURRENT (latest LTS)"
