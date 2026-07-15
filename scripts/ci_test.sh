@@ -13,7 +13,7 @@ case "$FRAMEWORK" in
     bun test --isolate --parallel=4 runtimes/bun/
     ;;
   node)
-    node --test runtimes/node/
+    node --test runtimes/node/**/*.test.ts
     ;;
   deno)
     deno test --allow-read --allow-write runtimes/deno/
