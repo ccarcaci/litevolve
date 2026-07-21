@@ -6,7 +6,7 @@
   "types": "./dist/index.d.ts",
   "files": ["dist"],
   "dependencies": {
-    "better-sqlite3": "12.11.1",
+    "better-sqlite3": "13.0.1",
     "litevolve-core": "../core"
   },
   "devDependencies": {
