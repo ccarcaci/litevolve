@@ -139,6 +139,7 @@ jobs:
 
       - name: install dependencies
         run: bun install
+        working-directory: runtimes/bun
 
       - name: build runner binaries
         run: scripts/runners_build.sh
