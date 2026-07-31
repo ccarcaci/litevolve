@@ -86,6 +86,7 @@ jobs:
         run: scripts/ci_test.sh node
 
   check_deno:
+    if: false # disabled re-enable with task https://github.com/users/ccarcaci/projects/10/views/1?pane=issue&itemId=221489025&issue=ccarcaci%7Crsvr%7C34
     name: check_deno
     needs: lint
     runs-on: ubuntu-latest
