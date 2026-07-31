@@ -1,6 +1,7 @@
 {
   "name": "litevolve-node",
   "version": "0.0.1",
+  "description": "Versioned SQLite migration runner for Node.js (node:sqlite) — library.",
   "type": "module",
   "engines": { "node": ">=22.5" },
   "exports": {
@@ -10,6 +11,16 @@
   "files": [
     "dist"
   ],
+  "license": "MIT",
+  "author": "ccarcaci",
+  "homepage": "https://github.com/ccarcaci/litevolve#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ccarcaci/litevolve.git",
+    "directory": "runtimes/node"
+  },
+  "keywords": ["sqlite", "migration", "migrations", "schema", "database", "node"],
+  "publishConfig": { "provenance": true },
   "devDependencies": {
     "@types/node": "26.1.2",
     "typescript": "7.0.2"

@@ -50,10 +50,13 @@ deno add jsr:@litevolve-deno/litevolve-deno
 brew install litevolve
 ```
 
+> **Node caveat:** `litevolve-node` uses the built-in `node:sqlite` (`DatabaseSync`), added in Node 22.5.0 and still marked experimental (Stability 1.2 — Release Candidate). It emits an `ExperimentalWarning` and its API may shift in a minor/patch release. Requires `node >= 22.5`.
+
 ## library_usage
 
 ```ts
-import { migrate_db } from "litevolve"
+// Import from the runtime-specific package: litevolve-bun or litevolve-node.
+import { migrate_db } from "litevolve-bun"
 
 // Apply migrations up (or down) to reach version 2.
 // Returns the open Bun Database handle.

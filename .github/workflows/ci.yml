@@ -3,6 +3,7 @@ name: checks
 on:
   push:
     branches: [main]
+    tags: ["v*"]
   pull_request:
     branches: [main]
   workflow_dispatch:
@@ -148,3 +149,58 @@ jobs:
             [ -f "$binary" ] || continue
             scripts/smoke_test.sh "$(basename "$binary")" "$binary" "$PWD/migrations"
           done
+
+  publish:
+    name: publish
+    needs: [check_bun, check_node] # don't publish red code
+    if: startsWith(github.ref, 'refs/tags/v') # tag push only
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write # provenance attestation
+    steps:
+      - name: checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      - name: install bun
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2
+        with:
+          bun-version-file: ".bun-version"
+
+      - name: install node
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version-file: ".node-version"
+          registry-url: "https://registry.npmjs.org"
+
+      - name: install esbuild
+        run: npm install --global esbuild
+
+      - name: install bun dependencies
+        run: bun install
+        working-directory: runtimes/bun
+
+      - name: install node dependencies
+        run: npm install
+        working-directory: runtimes/node
+
+      - name: build # dist is gitignored — must build before publish
+        run: scripts/ci_build.sh bun && scripts/ci_build.sh node
+
+      - name: stage README and LICENSE # not in package roots — copy at CI time, not committed
+        run: |
+          for dir in runtimes/bun runtimes/node; do
+            cp README.md LICENSE.md "$dir/"
+          done
+
+      - name: publish litevolve-bun
+        run: npm publish
+        working-directory: runtimes/bun
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: publish litevolve-node
+        run: npm publish
+        working-directory: runtimes/node
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

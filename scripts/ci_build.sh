@@ -15,8 +15,9 @@ case "$FRAMEWORK" in
       --outdir runtimes/bun/dist/
     ;;
   node)
-    # ponytail: tsc emits .d.ts only (emitDeclarationOnly); esbuild bundles src/core into dist/index.js
+    # esbuild bundles src/core into dist/index.js; tsc emits .d.ts only (emitDeclarationOnly in tsconfig)
     esbuild runtimes/node/src/index.ts --bundle --platform=node --format=esm --external:node:* --outfile=runtimes/node/dist/index.js
+    tsc --project runtimes/node/tsconfig.json
     ;;
   deno)
     bun build runtimes/deno/src/index.ts \
