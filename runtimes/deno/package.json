@@ -7,7 +7,6 @@
   "files": ["dist"],
   "dependencies": {
     "better-sqlite3": "13.0.2",
-    "litevolve-core": "../core"
   },
   "devDependencies": {
     "@types/better-sqlite3": "7.6.13",

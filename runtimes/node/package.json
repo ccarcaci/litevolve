@@ -2,6 +2,7 @@
   "name": "litevolve-node",
   "version": "0.0.1",
   "type": "module",
+  "engines": { "node": ">=22.5" },
   "exports": {
     ".": "./dist/index.js"
   },

@@ -1,9 +1,9 @@
-import Database from "better-sqlite3"
+import Database from "npm:better-sqlite3"
 import { existsSync } from "node:fs"
-import { migrate_with_adapter } from "litevolve-core"
-import { deno_db_adapter } from "./deno_adapter.js"
+import { migrate_with_adapter } from "./core/index.ts"
+import { deno_db_adapter } from "./deno_adapter.ts"
 
-export { migration_error } from "litevolve-core"
+export { migration_error } from "./core/index.ts"
 
 export const migrate_db = (
   apply_version: number,

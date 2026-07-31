@@ -114,7 +114,7 @@ jobs:
         run: scripts/ci_test.sh deno
 
   executables_smoke_checks:
-    needs: [check_bun, check_node, check_deno]
+    needs: [check_bun, check_node] # +check_deno
     name: executables_smoke_checks_(${{ matrix.runner }})
     runs-on: ${{ matrix.runner }}
 

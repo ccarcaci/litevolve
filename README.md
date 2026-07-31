@@ -36,17 +36,17 @@ The following instructions might not work since the integration is missing.
 
 ```sh
 # Bun
-bun add litevolve
+bun add litevolve-bun
 
-# npm / pnpm / yarn
-npm install litevolve
-pnpm add litevolve
-yarn add litevolve
+# Node: npm / pnpm / yarn
+npm install litevolve-node
+pnpm add litevolve-node
+yarn add litevolve-node
 
-# Deno (JSR)
-deno add jsr:@litevolve/litevolve
+# Deno (JSR) Not available yet
+deno add jsr:@litevolve-deno/litevolve-deno
 
-# Homebrew (CLI only)
+# Homebrew (CLI only) Not available yet
 brew install litevolve
 ```
 

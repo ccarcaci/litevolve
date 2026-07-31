@@ -1,6 +1,6 @@
 # Cross-Runtime Architecture: Bun, Node.js, Deno
 
-_Date: 2026-06-13_
+_Date: 2026-06-13. Aligned to code 2026-07-31 — sections below reflect what is **built**, not just planned._
 
 ## Goal
 
@@ -8,69 +8,75 @@ Publish `litevolve` on npm so it works as a library on Bun, Node.js, and Deno.
 
 ---
 
-## Hard Blocker
+## Hard Blocker — RESOLVED (adapter implemented)
 
-`src/migrate.ts` imports `Database` from `bun:sqlite` — Bun-only, no shim exists for Node or Deno. The code cannot be made cross-runtime without changes. Other Bun-isms:
-- `Bun.argv` in `run_litevolve.ts` — trivial swap for `process.argv`.
-- `node:fs`, `node:path`, `node:util` — fine on all runtimes; they already use the `node:` prefix.
+Originally `migrate.ts` imported `Database` from `bun:sqlite` directly (Bun-only). **Resolved:** core no longer touches any SQLite API. `core/migrate.ts` exposes `migrate_with_adapter(...)` and operates against the `db_adapter` interface (`core/db_adapter.ts`); each runtime supplies its own backend. Remaining notes:
+- `run_litevolve.ts` uses `node:util` `parseArgs` (not `Bun.argv`) — already cross-runtime.
+- `node:fs` is used in each runtime's `index.ts` (`existsSync`) — fine everywhere.
 
 ---
 
 ## Options
 
-### Option A — Bun-only publish (cheapest, narrowest)
+### Option A — Bun-only publish (cheapest, narrowest) — NOT taken
 
-Keep the code as-is. Set `"engines": { "bun": ">=1.0" }`. Document it as Bun-only. Consumers on Node/Deno get an immediate import error on `bun:sqlite`. Does not satisfy the cross-runtime requirement.
+Keep the code as-is, Bun-only. Rejected: does not satisfy the cross-runtime requirement.
 
-### Option B — Runtime adapter (chosen)
+### Option B — Runtime adapter — **CHOSEN & IMPLEMENTED**
 
-Introduce a thin SQLite adapter interface. Three implementations, one per runtime.
+A thin SQLite adapter interface, one implementation per runtime. As built:
 
-| Runtime      | Backend                         | Class          |
-| ------------ | ------------------------------- | -------------- |
-| Bun          | `bun:sqlite`                    | `Database`     |
-| Node ≥ 22.5  | `node:sqlite`                   | `DatabaseSync` |
-| Deno         | `npm:better-sqlite3` (Node-API) | `Database`     |
+| Runtime      | Backend                         | Adapter                                        |
+| ------------ | ------------------------------- | ---------------------------------------------- |
+| Bun          | `bun:sqlite` `Database`         | none — `Database` satisfies `db_adapter` as-is |
+| Node ≥ 22.5  | `node:sqlite` `DatabaseSync`    | `node_db_adapter` (`node/src/node_adapter.ts`) |
+| Deno         | `npm:better-sqlite3` `Database` | `deno_db_adapter` (`deno/src/deno_adapter.ts`) |
 
-**API surface used in `migrate.ts`** (the adapter only needs to cover this):
-- `new Database(path)`
-- `db.run(sql)`
-- `db.query(sql).get(...params)` → single row or null
-- `db.query(sql).run(...params)`
+**The `db_adapter` interface** (as built, `core/db_adapter.ts`):
 
-**API compatibility notes:**
-- `bun:sqlite` and `better-sqlite3` are call-compatible by design (Bun docs: _"Credit to better-sqlite3 and its contributors for inspiring the API"_).
-- `node:sqlite` uses `DatabaseSync` and `prepare(sql)` — close but not identical; `db.query(...)` calls need translating to `db.prepare(...).get/all/run`.
-- `node:sqlite` is **Stability 1.2 — Release candidate** as of Node v25.7.0. Available since v22.5.0.
-
-## Chosen Strategy: Monorepo with Runtime Packages
-
-```
-litevolve/                     ← monorepo root (not published)
-  package.json                 ← workspaces config
-  packages/
-    core/                      ← shared logic: migrate.ts, migration_error.ts
-      package.json             ← private, "name": "litevolve-core"
-      src/                     ← pure TypeScript, no runtime-specific imports
-    bun/                       ← "name": "litevolve-bun"
-      package.json             ← dependencies: {} (bun:sqlite is built-in)
-      src/                     ← bun:sqlite adapter + re-exports core
-    node/                      ← "name": "litevolve-node"
-      package.json             ← dependencies: {} (node:sqlite built-in since v22.5)
-      src/                     ← node:sqlite adapter + re-exports core
-    deno/                      ← "name": "litevolve-deno"
-      package.json             ← dependencies: { "better-sqlite3": ">=11.0.0" }
-      src/                     ← better-sqlite3 adapter + re-exports core
-```
-
-Root `package.json`:
-```json
-{
-  "name": "litevolve-monorepo",
-  "private": true,
-  "workspaces": ["packages/*"]
+```ts
+export type query_result<T> = {
+  get(...params: unknown[]): T | null
+  run(...params: unknown[]): void
+}
+export type db_adapter = {
+  run(sql: string): void
+  query<T>(sql: string): query_result<T>
 }
 ```
+
+`core/migrate.ts` calls `migrate_with_adapter(apply_version, migrations_path, adapter, init_seeds)`. Each runtime's `index.ts` opens its native DB, sets `PRAGMA journal_mode=WAL` + `foreign_keys=ON`, then passes an adapter in. Bun passes the raw `Database` (call-compatible); Node/Deno wrap theirs in the adapter class (their `prepare()`/`exec()` shape differs from the interface).
+
+**API compatibility notes:**
+- `bun:sqlite` and `better-sqlite3` are call-compatible by design (Bun docs: _"Credit to better-sqlite3 and its contributors for inspiring the API"_) — but Deno still goes through `deno_db_adapter`, which normalizes `exec`/`prepare` to the interface.
+- `node:sqlite` uses `DatabaseSync` + `prepare(sql)` — `node_db_adapter` maps `run(sql)`→`exec`, `query(sql)`→`prepare(sql)` with `get`/`run`.
+- `node:sqlite` is **Stability 1.2 — Release candidate** as of Node v25.7.0. Available since v22.5.0.
+
+## Chosen Strategy — AS BUILT: `runtimes/*` with duplicated-and-aligned core
+
+The originally-planned `packages/*` workspace with a private `litevolve-core` shared via `workspace:*` was **not** built. Reality:
+
+```
+litevolve/                     ← repo root — NO root package.json, NO workspaces
+  scripts/ci_check_align.sh    ← enforces core is byte-identical across runtimes
+  runtimes/
+    bun/                       ← "name": "litevolve-bun"  (CORE MASTER)
+      package.json             ← devDeps only (bun:sqlite built-in)
+      src/core/                ← db_adapter.ts, index.ts, migrate.ts, migration_error.ts
+      src/index.ts, run_litevolve.ts
+    node/                      ← "name": "litevolve-node"
+      package.json             ← devDeps only (node:sqlite built-in ≥ 22.5)
+      src/core/                ← COPY of bun's core (kept identical by ci_check_align.sh)
+      src/index.ts, node_adapter.ts
+    deno/                      ← "name": "litevolve-deno"
+      package.json             ← dependencies: { "better-sqlite3": "13.0.2" }
+      src/core/                ← COPY of bun's core
+      src/index.ts, deno_adapter.ts
+```
+
+**Core is duplicated, not shared via a package.** `runtimes/bun/src/core` is the master; `scripts/ci_check_align.sh` runs `diff --brief --recursive` of node's and deno's `src/core` against bun's and fails CI on any drift (`make align_core` re-copies bun → node/deno). There is no `packages/core`, no root `package.json`, and no `workspace:*` protocol. Trade-off: three physical copies, but each runtime dir is a self-contained buildable/publishable unit with zero workspace tooling.
+
+> ⚠️ **Deno is currently inconsistent.** `deno/package.json` still lists `"litevolve-core": "../core"` and `deno/src/{index,deno_adapter}.ts` import from the bare specifier `"litevolve-core"`, but **no `runtimes/core` dir exists** and deno's own core lives at `runtimes/deno/src/core`. Bun and Node import core via the relative `./core`. Deno must be reconciled (import `./core`, drop the `litevolve-core` dep) before it can build/publish. Out of scope for the current Bun+Node publish.
 
 ### What each package produces
 
@@ -83,64 +89,38 @@ Root `package.json`:
 ### Architecture Diagram
 
 ```
-                     ┌──────────────────────────────────────────────────────────────┐
-                     │             litevolve  (monorepo root · private)             │
-                     │          package.json: workspaces: ["packages/*"]            │
-                     └──────────────────────────────────────────────────────────────┘
-                                                   │
-  ┌────────────────────────────────────────────────┴─────────────────────────────────────┐
-  │                          packages/core  (private · never published)                  │
-  │              migrate.ts  migration_error.ts  run_litevolve.ts  index.ts              │
-  │               db_adapter: { run(sql: string), query(sql).get(…) / .run(…) }          │
-  └───────────────────────────────────────┬─────────────────────────────────────────────┘
-                                          │  workspace:*
-                       ┌──────────────────┼──────────────────┐
-                       │                  │                   │
-                       ▼                  ▼                   ▼
-         ┌─────────────────────┐  ┌─────────────────────┐  ┌─────────────────────┐
-         │    packages/bun     │  │   packages/node     │  │   packages/deno     │
-         │    litevolve-bun    │  │   litevolve-node    │  │   litevolve-deno    │
-         ├─────────────────────┤  ├─────────────────────┤  ├─────────────────────┤
-         │ bun:sqlite adapter  │  │ node:sqlite adapter │  │ better-sqlite3      │
-         │ deps: none          │  │ deps: none          │  │ adapter             │
-         │ engines: bun=1.0    │  │ engines: node=22.5  │  │ deps:               │
-         │ exports:            │  │ exports:            │  │  better-sqlite3     │
-         │  "bun": src/*.ts    │  │  ".": ./dist/       │  │  11.0.0 (pinned)    │
-         │  default: ./dist/   │  │                     │  │ exports:            │
-         │                     │  │                     │  │  ".": ./dist/       │
-         └──────────┬──────────┘  └──────────┬──────────┘  └──────────┬──────────┘
-                    │                         │                         │
-════════════════════╪═════════════════════════╪═════════════════════════╪════════════════
- CI / BUILD         │                         │                         │
-════════════════════╪═════════════════════════╪═════════════════════════╪════════════════
-                    │                         │                         │
-         bun build --bundle        bun build --bundle        bun build --bundle
-                    │                         │                         │
-                    └─────────────────────────┴─────────────────────────┘
-                                              │
-                               npm publish --provenance --access public
-                                              │
-                                              ▼
-                                ┌───────────────────────────────┐
-                                │         npm registry          │
-                                │   litevolve-bun               │
-                                │   litevolve-node              │
-                                │   litevolve-deno              │
-                                └───────────────────────────────┘
-
-  litevolve-bun (additional pipelines)
-
-       make ci_binary                    Docker build                   GoReleaser
-       bun compile                            │                             │
-            │                                 │                             │
-            ▼                                 ▼                             ▼
-  ┌────────────────────────┐   ┌──────────────────────────┐   ┌──────────────────────────┐
-  │    standalone binary   │   │       Docker image       │   │      executables         │
-  │  · bun-darwin-arm64    │   │     litevolve:latest     │   │  · brew tap              │
-  │  · bun-linux-x64       │   │    (binary + runtime)    │   │  · eopkg (.eopkg)        │
-  │  · …                   │   │                          │   │  · GoReleaser release    │
-  └────────────────────────┘   └──────────────────────────┘   └──────────────────────────┘
+  runtimes/bun/src/core  ── ci_check_align.sh (diff --brief -r) ──► must equal node & deno core
+  (CORE MASTER: db_adapter.ts index.ts migrate.ts migration_error.ts)
+                       │ copied into each runtime's src/core
+       ┌───────────────┼───────────────────┐
+       ▼               ▼                    ▼
+ ┌───────────────┐ ┌───────────────┐ ┌───────────────────┐
+ │ runtimes/bun  │ │ runtimes/node │ │ runtimes/deno     │
+ │ litevolve-bun │ │ litevolve-node│ │ litevolve-deno    │
+ ├───────────────┤ ├───────────────┤ ├───────────────────┤
+ │ bun:sqlite    │ │ node:sqlite   │ │ better-sqlite3    │
+ │ (no adapter)  │ │ node_adapter  │ │ deno_adapter      │
+ │ deps: none    │ │ deps: none    │ │ better-sqlite3    │
+ │ engines:      │ │ engines:      │ │   13.0.2          │
+ │  bun 1.3.14   │ │  (none yet)   │ │ ⚠ core-ref broken │
+ │ exports:      │ │ exports:      │ │ exports:          │
+ │  bun→src/*.ts │ │  ".":./dist/  │ │  ".":./dist/      │
+ │  default→dist │ │               │ │                   │
+ └───────┬───────┘ └───────┬───────┘ └─────────┬─────────┘
+         │                 │                   │
+═════════╪═════ CI / BUILD ╪═══════════════════╪═══════════
+         ▼                 ▼                   ▼
+   bun build        esbuild --bundle      bun build --target node
+   --target bun     + tsc (.d.ts)         --external better-sqlite3
+         │                 │               + deno check
+         └─────────────────┴───────────────────┘
+                           ▼
+              npm publish --provenance
+                           ▼
+        npm: litevolve-bun / -node / -deno
 ```
+
+Build commands are the real ones from `scripts/ci_build.sh`: **Node uses esbuild** (bundle → `dist/index.js`) with `tsc --emitDeclarationOnly` for `.d.ts`; Bun and Deno use `bun build`. `litevolve-bun` also feeds the additional binary/Docker/GoReleaser pipelines below.
 
 The Docker image and standalone executable are CI/CD pipeline artifacts. They are compiled from the same source as `litevolve-bun` via a dedicated pipeline step (e.g. `make ci_binary`, GoReleaser) that runs independently of npm publishing. The `litevolve-bun/package.json` is unaware of them — its `"files"` allowlist covers only `dist/` and `src/`, and no lifecycle script or build hook in the package references binary compilation.
 
@@ -183,49 +163,25 @@ The Docker image and standalone executable are CI/CD pipeline artifacts. They ar
 
 npm dependency installation is not runtime-aware — there is no `runtime` field, only `os` and `cpu`. Putting `better-sqlite3` in any shared `dependencies` or `optionalDependencies` field installs a native addon on Bun and Node consumers who will never use it. Three packages give each runtime an isolated `package.json` with only the deps it actually needs.
 
-### `core` package
+### `core` — duplicated per runtime, aligned by CI (AS BUILT)
 
-Contains `migrate.ts` and `migration_error.ts` with all runtime-specific SQLite calls removed. It operates against a `db_adapter` interface:
+`core/` (`db_adapter.ts`, `index.ts`, `migrate.ts`, `migration_error.ts`) holds all runtime-agnostic logic against the `db_adapter` interface. It is **physically copied** into `runtimes/{bun,node,deno}/src/core`. `runtimes/bun/src/core` is the master; `scripts/ci_check_align.sh` fails CI if node's or deno's copy drifts, and `make align_core` re-copies bun → node/deno.
 
-```ts
-type db_adapter = {
-  run(sql: string): void
-  query<T>(sql: string): { get(...params: unknown[]): T | null; run(...params: unknown[]): void }
-}
-```
+The interface is intentionally a generic relational-DB shape (run / query→get/run), not a SQLite-specific wrapper, so a non-SQLite backend could implement it later.
 
-The interface could be very different, it should act as a generic relational-DB interface and not as a mere "SQLite wrapper".
+**Why duplicate instead of a `workspace:*` shared package** (the originally-planned approach, dropped): no root `package.json`/workspace tooling to maintain; each `runtimes/*` dir is a standalone unit that builds and publishes on its own. The cost — three copies that could silently diverge — is bought off by the mandatory `ci_check_align.sh` gate. `litevolve-core` is **not** a real published or workspace package.
 
-The `core` package is `private` — never published to npm. Each runtime package depends on it via `workspace:*` and bundles it at build time.
+### Why three packages, not one with conditional exports
 
-`bun build --bundle` will include the `core/` content in the bundle.
+The root problem is `better-sqlite3`: a native addon requiring a `postinstall` compile step. npm has no `runtime` field — only `os` and `cpu` — so there is no way to say "install this dep only on Deno". Any package listing `better-sqlite3` in `dependencies`/`optionalDependencies` installs it on every consumer, including Bun/Node users who never use it. Separate packages give each runtime exactly the deps it needs. (See the "Publishing Execution Plan" section for how this interacts with the README's single-`litevolve` promise for the Bun+Node-only scope.)
 
-### How workspace and bundling work together
+### How the bundle collapses core in
 
-**Why three separate packages instead of one with conditional exports:**
+Each runtime's build (`scripts/ci_build.sh`) starts from that runtime's `src/index.ts`, follows imports into the sibling `src/core/`, and **inlines core** into a single self-contained `dist/index.js` — Bun/Deno via `bun build`, Node via `esbuild`. No `litevolve-core` reference survives in the output, and none appears in any consumer's `node_modules`. (Deno's build is currently blocked by the broken `litevolve-core` import noted above.)
 
-The root problem is `better-sqlite3`: a native addon that requires a `postinstall` compile step. npm has no `runtime` field — only `os` and `cpu` — so there is no way to say "install this dep only on Deno". Any package that lists `better-sqlite3` in `dependencies` or `optionalDependencies` installs it on every consumer, including Bun and Node users who never use it. Three packages is the only escape hatch: each has exactly the deps its runtime needs and nothing else.
+### API — AS BUILT
 
-**Why a workspace instead of just copying the shared code:**
-
-The migration logic (`migrate.ts`, `migration_error.ts`) is identical across all three runtime packages. Duplicating it would mean three diverging copies to maintain. `packages/core` holds it once. The `workspace:*` protocol in each runtime package's `dependencies` is a local symlink — not an npm reference — so `litevolve-core` never needs to be published.
-
-**How `bun build --bundle` collapses it:**
-
-At build time, `bun build --bundle` starts from the runtime package's entry point, follows every import, crosses the workspace boundary into `packages/core/src/`, and **inlines all of core's code** directly into the output file:
-
-```
-packages/core/src/migrate.ts         ──┐
-packages/core/src/migration_error.ts ──┤── bun build --bundle ──► packages/<runtime>/dist/index.js
-packages/<runtime>/src/adapter.ts    ──┤                           (single self-contained file)
-packages/<runtime>/src/index.ts      ──┘
-```
-
-The output `dist/index.js` is fully self-contained: runtime adapter + all migration logic, no external references to `litevolve-core`. The published npm package has **no `dependencies` entry for `litevolve-core`** — it was consumed at build time and is gone. `litevolve-core` never appears on npm and never lands in any consumer's `node_modules`.
-
-### API change
-
-`migrate_db` will use the `db_adapter` interface. During the bundling, an implementation of it will be provided.
+`migrate_db(apply_version, migrations_path, db_path, init_seeds?)` in each runtime opens the native DB and calls `migrate_with_adapter(...)` with the runtime's adapter. `migration_error` is re-exported from core.
 
 ## package.json per runtime package
 
@@ -233,30 +189,31 @@ Each package targets exactly one runtime, so no multi-runtime conditional routin
 
 Bun docs (verbatim): _"If your library is written in TypeScript, you can publish your (un-transpiled!) TypeScript files to npm directly. If you specify your package's `*.ts` entrypoint in the `"bun"` condition, Bun will directly import and execute your TypeScript source files."_
 
+**`runtimes/bun/package.json` — AS BUILT:**
+
 ```json
-// litevolve-bun/package.json
 {
   "name": "litevolve-bun",
   "version": "0.0.1",
   "type": "module",
   "exports": {
     ".": {
-      "bun":    { "types": "./src/index.ts", "default": "./src/index.ts" },
+      "bun": { "types": "./src/index.ts", "default": "./src/index.ts" },
       "default": "./dist/index.js"
     }
   },
   "types": "./dist/index.d.ts",
   "files": ["dist", "src"],
-  "engines": { "bun": "=1.0" }
+  "engines": { "bun": "1.3.14" },
+  "devDependencies": { "@types/bun": "1.3.14", "@biomejs/biome": "2.5.6" }
 }
 ```
 
-The `"bun"` condition serves raw TypeScript to Bun consumers. The `"default"` fallback serves compiled JS to IDE tooling and TypeScript language servers that do not resolve the `"bun"` condition.
+Engine is pinned to the **exact** Bun version (`1.3.14`), matching the repo's exact-pin policy — not a `>=`/`=1.0` range. The `"bun"` condition serves raw TypeScript to Bun consumers; `"default"` serves compiled JS to Node/IDE tooling.
 
-`litevolve-node` and `litevolve-deno` ship only `dist/` and need no conditional exports:
+**`runtimes/node/package.json` — AS BUILT (⚠ `engines` still missing):**
 
 ```json
-// litevolve-node/package.json
 {
   "name": "litevolve-node",
   "version": "0.0.1",
@@ -264,14 +221,15 @@ The `"bun"` condition serves raw TypeScript to Bun consumers. The `"default"` fa
   "exports": { ".": "./dist/index.js" },
   "types": "./dist/index.d.ts",
   "files": ["dist"],
-  "engines": { "node": "=22.5" }
+  "devDependencies": { "@types/node": "26.1.2", "typescript": "7.0.2" }
 }
 ```
 
-`engines.node = 22.5` because `node:sqlite` (`DatabaseSync`) was added in v22.5.0 (Stability 1.2 RC as of v25.7.0).
+`node:sqlite` (`DatabaseSync`) was added in v22.5.0 (Stability 1.2 RC as of v25.7.0). The package **should** declare `"engines": { "node": ">=22.5" }` (or an exact pin) — not present yet; tracked as a publish gap below.
+
+**`runtimes/deno/package.json` — AS BUILT (⚠ broken core ref):**
 
 ```json
-// litevolve-deno/package.json
 {
   "name": "litevolve-deno",
   "version": "0.0.1",
@@ -279,11 +237,15 @@ The `"bun"` condition serves raw TypeScript to Bun consumers. The `"default"` fa
   "exports": { ".": "./dist/index.js" },
   "types": "./dist/index.d.ts",
   "files": ["dist"],
-  "dependencies": { "better-sqlite3": "11.0.0" }
+  "dependencies": { "better-sqlite3": "13.0.2", "litevolve-core": "../core" },
+  "devDependencies": { "@types/better-sqlite3": "7.6.13", "typescript": "7.0.2" },
+  "trustedDependencies": ["better-sqlite3"]
 }
 ```
 
-Always use pinned version of runtimes (Bun, Node.js, Deno) and dependencies. Use a script to check of updates and manually promote new versions after having tested them.
+`better-sqlite3` is pinned exact (`13.0.2`, not the earlier-planned `11.0.0`). The `"litevolve-core": "../core"` dep points at a **nonexistent** `runtimes/core` dir and must be removed (core is at `runtimes/deno/src/core`, imported via `./core`). `trustedDependencies` is required so Bun-based tooling runs `better-sqlite3`'s native `postinstall`.
+
+Exact-pin policy holds across runtimes and deps; `scripts/ci_check_updates_*.sh` surface newer versions for manual promotion after testing.
 
 ### `better-sqlite3` and Bun's lifecycle scripts
 
@@ -322,9 +284,10 @@ Requirements:
 
 ## Open Items
 
-1. **Versioning discipline** — all three packages must be published together at the same version. Set up coordinated CI publish (e.g., Changesets).
-2. `node:sqlite` Stability 1.x is understated as a risk. Stability 1.2 means the API is not frozen — Node.js reserves the right to change
-   it in semver-minor or semver-patch releases without it being a breaking change by Node's own policy. Pin specific Node.js version instead of using `>=22.5`
+1. **Deno reconciliation** — remove `"litevolve-core": "../core"`, switch `deno/src/*` imports from bare `litevolve-core` to `./core`. Deno cannot build until then. (Out of scope for the Bun+Node publish.)
+2. **Node `engines`** — not declared yet; add `>=22.5` (or exact pin) before publishing `litevolve-node`.
+3. **Versioning discipline** — the three package names carry independent `version` fields (all `0.0.1`). Decide whether they publish together at a locked version (Changesets, or a single tag-driven job) or independently.
+4. **`node:sqlite` stability risk** — Stability 1.2 means the API is not frozen; Node may change it in a semver-minor/patch without calling it breaking. Consider pinning an exact Node version rather than `>=22.5`. Exact runtime pinning is already the policy elsewhere (`.bun-version` 1.3.14, `.node-version` 24.18.1), so this aligns.
 
 ---
 
@@ -345,3 +308,89 @@ Requirements:
 - [TypeScript: package.json exports](https://www.typescriptlang.org/docs/handbook/modules/reference.html#packagejson-exports)
 - [Hono package.json](https://cdn.jsdelivr.net/npm/hono/package.json)
 - [Drizzle ORM package.json](https://cdn.jsdelivr.net/npm/drizzle-orm/package.json)
+
+---
+
+## Publishing Execution Plan — Bun + Node only, npm
+
+_Added 2026-07-31. Scope: publish for **Bun and Node.js** (Deno out of scope here)._
+
+### Naming — code already committed to separate packages, but README says otherwise
+
+**What the code has done:** three `package.json` files named `litevolve-bun`, `litevolve-node`, `litevolve-deno`. So the *separate-packages* decision is effectively made in the tree.
+
+**The live contradiction:** `README.md` still advertises `npm install litevolve` (a single unscoped name that no `package.json` claims). One of these has to give before first publish:
+- **Keep three names** (`litevolve-bun`/`-node`) — matches the code as-is; fix the README to install the runtime-specific package. Trivially extends to `-deno` later.
+- **Add a single `litevolve`** umbrella with conditional exports (viable for the Bun+Node scope, since both use built-in SQLite / zero deps) — matches the README, but is *new work* not reflected in the current three-package tree, and Deno re-entry (`better-sqlite3` native dep) would be awkward.
+
+```jsonc
+// single-litevolve exports, IF that path is chosen (not currently in the tree)
+"exports": { ".": {
+  "bun":     { "types": "./src/index.ts", "default": "./src/index.ts" },
+  "types":   "./dist/index.d.ts",
+  "default": "./dist/index.js"      // node + everything else
+}}
+```
+
+Default reading of the code: **ship the three separate names, fix the README.** The single-package assembly note below only applies if the umbrella path is chosen instead.
+
+### `.npmignore` verdict — don't add one
+
+Both packages already use the `files` **allowlist** in `package.json`, which is strictly better than an `.npmignore` denylist (default-deny vs. default-allow). If both exist, `files` wins and `.npmignore` is dead config. **Skip `.npmignore`.** Current allowlists are correct: node = `["dist"]` (compiled only ✅ — satisfies "Node should ship only the compiled version"), bun = `["dist","src"]` (src needed for the `bun` condition). npm force-includes `package.json`, `README`, `LICENSE` regardless.
+
+### Gaps to close before first publish
+
+1. **README/LICENSE not in package root.** They live at repo root; the package root is `runtimes/bun`, so the tarball ships none. → copy both into the publish dir at CI time (don't commit copies).
+2. **Metadata absent** from every `package.json`: `description`, `license`, `repository` (must match publishing source, case-sensitive, for provenance), `homepage`, `keywords`, `author`.
+3. **`engines.node` missing** on node package → `"engines": { "node": ">=22.5" }` (`node:sqlite`'s `DatabaseSync` added in 22.5.0). Repo `.node-version` is 24.18.1.
+4. **`node:sqlite` is experimental** (Stability 1.2 RC; emits `ExperimentalWarning`, API may shift in minor/patch per Node policy) — document as a caveat, and consider pinning a Node minor rather than `>=22.5`. Biggest risk in shipping the Node build.
+5. **`dist/` is gitignored** → the publish job must build (`ci_build.sh node && ci_build.sh bun`) before `npm publish`; nothing to publish otherwise.
+6. **No publish CI job** exists yet.
+7. **`publishConfig`** — unscoped name, so `access` not required; add `"publishConfig": { "provenance": true }` for provenance (needs `id-token: write`).
+
+Not needed (YAGNI): no `bin`/CLI on npm — standalone binaries (`run_litevolve.ts` → `bun --compile`) are a separate GitHub-releases concern.
+
+### CI publish step — gate it, don't fire on every merge
+
+Publishing on **every** push to `main` breaks the second run — npm rejects republishing an existing version, so the job goes red until someone bumps `version`.
+
+- **Recommended — tag/release triggered:** `on: push: tags: ['v*']` (or `release: published`). Bump + tag *is* the publish signal. No guard logic.
+- **Literal "on merge to master":** add a step comparing `package.json` version to `npm view litevolve version`, `exit 0` (skip) if unchanged. Same outcome, more moving parts.
+
+Job shape (add to `.github/workflows/ci.yml` or a new `publish.yml`; pin action SHAs to match existing style):
+
+```yaml
+publish:
+  needs: [check_bun, check_node]                # don't publish red code
+  if: startsWith(github.ref, 'refs/tags/v')     # or the version-diff guard
+  runs-on: ubuntu-latest
+  permissions: { contents: read, id-token: write }   # id-token only for provenance
+  steps:
+    - uses: actions/checkout@<sha>
+    - uses: oven-sh/setup-bun@<sha>
+      with: { bun-version-file: ".bun-version" }
+    - run: bun install
+      working-directory: runtimes/bun
+    - run: scripts/ci_build.sh node && scripts/ci_build.sh bun   # dist is gitignored
+    - run: cp README.md LICENSE.md <publish-dir>/                # gap #1
+    - uses: actions/setup-node@<sha>
+      with: { registry-url: 'https://registry.npmjs.org' }
+    - run: npm publish --provenance
+      env: { NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }} }
+```
+
+Manual prereqs (cannot be automated here): create an npm **automation token**, add repo secret `NPM_TOKEN`, reserve the `litevolve` name on npm, enable 2FA (store recovery codes).
+
+### Assembly note (single-package path)
+
+Unified `litevolve` must carry **both** bun `src` (for the `bun` condition) *and* node `dist` (for `default`) in one tarball. Publish from `runtimes/bun` and stage node's `dist/index.js` + `index.d.ts` into it at CI time — a small assembly step, not a bare `npm publish`.
+
+### Ordered checklist
+
+1. Reconcile naming: keep the three code names (`litevolve-bun`/`-node`) and fix the README, **or** add a single `litevolve` umbrella (blocks everything).
+2. Fill `package.json` metadata + node `engines` + `publishConfig` (gaps 2,3,7).
+3. Wire README/LICENSE copy (+ dist assembly only if the umbrella path is chosen) into a build/stage script (gaps 1,5).
+4. Add the gated `publish` job (gap 6).
+5. Manual: npm token → `NPM_TOKEN` secret, reserve name(s), 2FA.
+6. Document `node:sqlite` experimental caveat in README (gap 4).
+7. Tag `v0.0.1` (or bump) to trigger the first publish.
