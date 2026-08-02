@@ -152,7 +152,7 @@ Notes about the parser (see `src/migrate.ts:48`):
 
 ## example_ornithology_database
 
-The `migrations/` directory in this repository ships a runnable three-version example modelling a bird-observation system:
+The `migrations/working/` directory in this repository ships a runnable three-version example modelling a bird-observation system (the sibling `migrations/broken/` holds an intentionally-invalid migration used only by the test suite):
 
 - **v1** (`0001_create_initial_schema.sql`) — minimal core, four tables:
   - `observation_sites (id, name)`

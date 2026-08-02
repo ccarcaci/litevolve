@@ -42,18 +42,26 @@ const find_seed_path = (file_path: string): string | null => {
   return existsSync(seed_path) ? seed_path : null
 }
 
-// Splits a SQL file into individual statements and runs each one via db.run().
-// Handles multi-statement DDL files (CREATE TABLE, CREATE INDEX, etc.).
-// IMPORTANT: splits on ";" first — semicolons inside SQL comment text are also
-// treated as statement terminators, so avoid them in migration comment text.
+// Runs a migration file that may contain several statements.
+// We must NOT hand the whole file to db.run() in one call: bun:sqlite only
+// surfaces the error of the *last* statement in a multi-statement string — a
+// failure in any earlier statement is silently swallowed and execution
+// continues, and a trailing newline makes even the last statement's error
+// vanish. That would let a broken migration COMMIT and advance user_version.
+// Running each statement on its own makes every failure throw, so apply_migration
+// rolls back.
+// ponytail: naive splitter — strips `-- line comments`, then splits on `;`. Does
+// not handle `;`/`--` inside string literals or triggers (BEGIN..END). Fine for
+// the simple DDL/DML migration format; revisit if migrations ever need those.
 const run_sql_statements = (db: db_adapter, sql: string): void => {
-  sql
-    .replace(/--[^\n]*/g, "").trim() // /--[^\n]*/g strips each "-- … end-of-line" comment; trim removes residual whitespace
-    .split(";") // statement terminator; semicolons in comment text also split here
-    .filter((s) => s.length > 0) // discard empty chunks from trailing ";" or comment-only segments
-    .forEach((s) => {
-      db.run(s)
-    })
+  const statements = sql
+    .replace(/--[^\n]*/g, "")
+    .split(";")
+    .map((s) => s.trim())
+    .filter((s) => s.length > 0)
+  for (const statement of statements) {
+    db.run(statement)
+  }
 }
 
 // Applies a single migration step inside one IMMEDIATE transaction.
@@ -71,7 +79,9 @@ const apply_migration = (
   db.run("BEGIN IMMEDIATE")
   try {
     run_sql_statements(db, sql)
-    if (seed_sql) run_sql_statements(db, seed_sql)
+    if (seed_sql) {
+      run_sql_statements(db, seed_sql)
+    }
     db.run(`PRAGMA user_version = ${next_version}`)
     db.run("COMMIT")
   } catch (err) {

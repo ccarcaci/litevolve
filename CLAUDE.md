@@ -33,7 +33,8 @@ Run tests: `make ci_test` (parallel, isolated) or `make test_debug` (with debugg
 | `src/migration_error.ts` | `migration_error` class (extends `Error`)                                            |
 | `src/index.ts`           | Library entry point — re-exports `migrate_db` and `migration_error`                  |
 | `src/migrate.test.ts`    | All tests                                                                            |
-| `migrations/`            | Example ornithology DB (3 versions, up/down/seed files)                              |
+| `migrations/working/`    | Example ornithology DB (3 versions, up/down/seed files)                              |
+| `migrations/broken/`     | Intentionally-invalid migration used by the test suite (constraint-failure path)     |
 
 ### Naming conventions
 

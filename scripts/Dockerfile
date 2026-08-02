@@ -37,7 +37,7 @@ RUN --mount=type=bind,from=builder,source=/app/dist,target=/dist \
     for binary in $GLIBC_BINARIES; do \
         cp /dist/$binary /usr/local/bin/$binary && chmod +x /usr/local/bin/$binary; \
     done
-COPY migrations/ /migrations/
+COPY migrations/working/ /migrations/
 COPY scripts/smoke_test.sh /usr/local/bin/smoke_test.sh
 RUN chmod +x /usr/local/bin/smoke_test.sh
 
@@ -49,7 +49,7 @@ RUN --mount=type=bind,from=builder,source=/app/dist,target=/dist \
     for binary in $MUSL_BINARIES; do \
         cp /dist/$binary /usr/local/bin/$binary && chmod +x /usr/local/bin/$binary; \
     done
-COPY migrations/ /migrations/
+COPY migrations/working/ /migrations/
 COPY scripts/smoke_test.sh /usr/local/bin/smoke_test.sh
 RUN chmod +x /usr/local/bin/smoke_test.sh
 

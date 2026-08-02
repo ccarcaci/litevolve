@@ -90,13 +90,14 @@ align_core: ## align core directory with node and deno versions, bun version is 
 
 .PHONY: test
 test: ## run core + bun adapter tests (e.g. make test <name>)
-	@$(BUN) test \
+	@$(BUN) test --verbose \
 		$(if $(filter-out test,$(MAKECMDGOALS)),--test-name-pattern=$(filter-out test,$(MAKECMDGOALS))) \
 		$(BUN_SRC)
 
 .PHONY: test_debug
 test_debug: ## run core + bun adapter tests with debugger (e.g. make test_debug <name>)
-	@$(BUN) test \
+	@$(BUN) test --verbose \
+		--timeout=7200000 \
 		--inspect-wait \
 		$(if $(filter-out test_debug,$(MAKECMDGOALS)),--test-name-pattern=$(filter-out test_debug,$(MAKECMDGOALS))) \
 		$(BUN_SRC)

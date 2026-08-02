@@ -46,5 +46,5 @@ scripts/ci_test.sh bun
 scripts/runners_build.sh
 for binary in dist/litevolve_*; do
   [ -f "$binary" ] || continue
-  scripts/smoke_test.sh "$(basename "$binary")" "$binary" "$PWD/migrations"
+  scripts/smoke_test.sh "$(basename "$binary")" "$binary" "$PWD/migrations/working"
 done

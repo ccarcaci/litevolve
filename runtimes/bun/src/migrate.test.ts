@@ -5,8 +5,11 @@ import { existsSync, rmSync } from "node:fs"
 import { tmpdir } from "node:os"
 import { join, resolve } from "node:path"
 import { migrate_db } from "./index"
+import { migration_error } from "./core/migration_error"
 
-const MIGRATIONS_PATH = resolve(import.meta.dir, "../../../migrations")
+const MIGRATIONS_ROOT = resolve(import.meta.dir, "../../../migrations")
+const MIGRATIONS_PATH = resolve(MIGRATIONS_ROOT, "working")
+const BROKEN_MIGRATIONS_PATH = resolve(MIGRATIONS_ROOT, "broken")
 
 const SITE_ID = "48740B1B-0AA2-48DD-9EEE-C14B6AC3258C" // Central Park Bird Sanctuary
 const ALICE_ID = "D5F7BA6A-19C2-42F3-8080-17F098BB807D" // Alice Johnson
@@ -221,6 +224,40 @@ describe("migrate_db_file_based_database", () => {
     migrate_db(0, MIGRATIONS_PATH, db_path)
 
     //  --  assert
+    const db = new Database(db_path)
+    expect(table_names(db)).toEqual([])
+    expect(db_user_version(db)).toBe(0)
+    db.close()
+  })
+
+  test("failing_migration_wraps_and_surfaces_specific_sqlite_constraint_error", () => {
+    //  --  act: the broken migration inserts a row violating a NOT NULL constraint
+    let caught: unknown
+    try {
+      migrate_db(1, BROKEN_MIGRATIONS_PATH, db_path)
+    } catch (err) {
+      caught = err
+    }
+
+    //  --  assert: surfaced as a migration_error wrapping the underlying SQLite error
+    expect(caught).toBeInstanceOf(migration_error)
+    const err = caught as migration_error
+
+    expect(err.original_error).toBeDefined()
+
+    debugger
+
+    expect(err.method).toBe("apply_migration")
+    expect(err.module_path).toBe("src/db_migrations/migrate")
+    expect(err.cause).toMatch(/failed to apply [\s\S]*\/migrations\/broken\/0001_not_null_violation.sql/)
+
+    //  --  assert: the wrapped error names the specific constraint type + column,
+    //  not a generic failure. SQLite guarantees this message text.
+    const original = err.original_error as { message?: string }
+    expect(original.message).toContain("NOT NULL constraint failed")
+    expect(original.message).toContain("widgets.name")
+
+    //  --  assert: the failed step rolled back — no schema change, still at v0
     const db = new Database(db_path)
     expect(table_names(db)).toEqual([])
     expect(db_user_version(db)).toBe(0)
