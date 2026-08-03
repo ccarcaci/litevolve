@@ -24,7 +24,9 @@ const read_migration_files = (
 ): migration_file_type[] =>
   readdirSync(migrations_path).flatMap((f) => {
     const match = f.match(FILENAME_REGEX)
-    if (!match) return []
+    if (!match) {
+      throw new migration_error("src/core/migrate", "read_migration_files", `file name in ${f} doesn't fit with filename spec`)
+    }
     const extension = match[2] // "sql" | "seed.sql" | "down.sql"
     if (direction === "up" && extension !== "sql") return []
     if (direction === "down" && extension !== "down.sql") return []

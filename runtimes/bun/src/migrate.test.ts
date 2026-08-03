@@ -10,6 +10,7 @@ import { migration_error } from "./core/migration_error"
 const MIGRATIONS_ROOT = resolve(import.meta.dir, "../../../migrations")
 const MIGRATIONS_PATH = resolve(MIGRATIONS_ROOT, "working")
 const BROKEN_MIGRATIONS_PATH = resolve(MIGRATIONS_ROOT, "broken")
+const INVALID_FILENAME_MIGRATIONS_PATH = resolve(MIGRATIONS_ROOT, "invalid_filename")
 
 const SITE_ID = "48740B1B-0AA2-48DD-9EEE-C14B6AC3258C" // Central Park Bird Sanctuary
 const ALICE_ID = "D5F7BA6A-19C2-42F3-8080-17F098BB807D" // Alice Johnson
@@ -258,6 +259,29 @@ describe("migrate_db_file_based_database", () => {
     expect(original.message).toContain("widgets.name")
 
     //  --  assert: the failed step rolled back — no schema change, still at v0
+    const db = new Database(db_path)
+    expect(table_names(db)).toEqual([])
+    expect(db_user_version(db)).toBe(0)
+    db.close()
+  })
+
+  // TDD (red): the runner currently silently skips files failing FILENAME_REGEX, so the valid
+  // 0001 file would still run. Desired behavior — a malformed filename aborts the whole run before
+  // any migration executes. This test is expected to FAIL until read_migration_files is fixed.
+  test("invalid_migration_filename_aborts_run_no_migrations_apply_no_db_effects", () => {
+    //  --  arrange: dir has a valid 0001 migration + a malformed 0003a45_... file
+    let caught: unknown
+    try {
+      //  --  act
+      migrate_db(1, INVALID_FILENAME_MIGRATIONS_PATH, db_path)
+    } catch (err) {
+      caught = err
+    }
+
+    //  --  assert: a migration_error is raised
+    expect(caught).toBeInstanceOf(migration_error)
+
+    //  --  assert: nothing ran — the valid 0001 migration did not apply, DB is untouched
     const db = new Database(db_path)
     expect(table_names(db)).toEqual([])
     expect(db_user_version(db)).toBe(0)
