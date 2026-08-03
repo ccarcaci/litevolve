@@ -5,13 +5,21 @@
   "type": "module",
   "exports": {
     ".": {
-      "bun": { "types": "./src/index.ts", "default": "./src/index.ts" },
+      "bun": {
+        "types": "./src/index.ts",
+        "default": "./src/index.ts"
+      },
       "default": "./dist/index.js"
     }
   },
   "types": "./dist/index.d.ts",
-  "files": ["dist", "src"],
-  "engines": { "bun": "1.3.14" },
+  "files": [
+    "dist",
+    "src"
+  ],
+  "engines": {
+    "bun": "1.3.14"
+  },
   "license": "MIT",
   "author": "ccarcaci",
   "homepage": "https://github.com/ccarcaci/litevolve#readme",
@@ -20,10 +28,20 @@
     "url": "git+https://github.com/ccarcaci/litevolve.git",
     "directory": "runtimes/bun"
   },
-  "keywords": ["sqlite", "migration", "migrations", "schema", "database", "bun"],
-  "publishConfig": { "provenance": true },
+  "keywords": [
+    "sqlite",
+    "migration",
+    "migrations",
+    "schema",
+    "database",
+    "bun"
+  ],
+  "publishConfig": {
+    "provenance": true
+  },
   "devDependencies": {
-    "@types/bun": "1.3.14",
-    "@biomejs/biome": "2.5.6"
+    "@biomejs/biome": "2.5.6",
+    "@changesets/cli": "^2.31.1",
+    "@types/bun": "1.3.14"
   }
 }
