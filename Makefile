@@ -57,6 +57,20 @@ migrate_seeds: _check_args ## migrate fresh DB to VERSION with seeds (--init_see
 		--init_seeds
 	@cd $(MAKEFILE_DIR)
 
+NODE_CHANGESET_DIR := $(RUNTIMES_DIR)/node/.changeset
+BUN_CHANGESET_DIR := $(RUNTIMES_DIR)/bun/.changeset
+.PHONY: yield_version
+.ONESHELL:
+yield_version: ## bump versions from changeset files (node + bun), if any changeset exists
+	@claude --print "Generate changeset file content for the changes in @runtimes/node/ folder relative to the current active branch" > $(NODE_CHANGESET_DIR)/curr_changeset.md
+	@claude --print "Generate changeset file content for the changes in @runtimes/bun/ folder relative to the current active branch" > $(BUN_CHANGESET_DIR)/curr_changeset.md
+	@if ls $(NODE_CHANGESET_DIR)/*.md 2>/dev/null | grep -qv README.md; then \
+		echo "versioning node..."; cd $(RUNTIMES_DIR)/node && npx changeset version; cd $(MAKEFILE_DIR); \
+	else echo "node: no changeset, skipping"; fi
+	@if ls $(BUN_CHANGESET_DIR)/*.md 2>/dev/null | grep -qv README.md; then \
+		echo "versioning bun..."; cd $(RUNTIMES_DIR)/bun && bunx changeset version; cd $(MAKEFILE_DIR); \
+	else echo "bun: no changeset, skipping"; fi
+
 ##@ setup and cleanup
 
 .PHONY: install
