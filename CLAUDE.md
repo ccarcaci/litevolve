@@ -54,10 +54,10 @@ Use `migration_error` from `src/migration_error.ts` for all thrown errors. Const
 ### Migration filename format
 
 ```
-0+[1-9][0-9]*_([a-zA-Z_]+)\.(sql|seed\.sql|down\.sql)
+0*[1-9][0-9]*_([a-zA-Z_]+)\.(sql|seed\.sql|down\.sql)
 ```
 
-Examples: `0001_create_initial_schema.sql`, `0042_add_users.down.sql`, `01000_split_log.seed.sql`.
+Examples: `0001_create_initial_schema.sql`, `1234_create_users_table.sql`, `0042_add_users.down.sql`, `01000_split_log.seed.sql`. Leading-zero padding is optional.
 
 ### Key Makefile targets
 

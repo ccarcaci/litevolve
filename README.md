@@ -117,12 +117,12 @@ This pattern is suited for baking a pre-seeded read-only SQLite file into an ima
 Files in the migrations directory are validated by a strict regex:
 
 ```
-0+[1-9][0-9]*_([a-z]|[A-Z]|_)+\.(sql|seed\.sql|down\.sql)
+0*[1-9][0-9]*_([a-z]|[A-Z]|_)+\.(sql|seed\.sql|down\.sql)
 ```
 
 Breakdown:
 
-- `0+` — at least one leading zero (the zero-padding).
+- `0*` — optional leading zeros for zero-padding (padding is not required).
 - `[1-9][0-9]*` — the numeric version: a non-zero leading digit followed by any digits.
 - `_` — separator.
 - `([a-z]|[A-Z]|_)+` — a `[a-zA-Z_]+` description.
@@ -136,10 +136,10 @@ Breakdown:
 
 Files that do not match the regex are silently skipped — keep auxiliary files (notes, fixtures, sub-directories) out of the migrations directory or they won't be picked up.
 
-**Sort order is numeric after stripping leading zeros**, not lexicographic. `0999_x.sql` sorts before `01000_y.sql` because `parseInt("0999")` is `999` and `parseInt("01000")` is `1000`. This means the padding width can change across migrations without breaking the order: `0001_…`, `0042_…`, `0999_…`, `01000_…` all sort correctly together.
+**Sort order is numeric after stripping leading zeros**, not lexicographic. `0999_x.sql` sorts before `01000_y.sql` because `parseInt("0999")` is `999` and `parseInt("01000")` is `1000`. Padding is optional and its width can vary across migrations without breaking the order: `1_…`, `0042_…`, `0999_…`, `01000_…` all sort correctly together, and an unpadded `42_…` sorts identically to `0042_…`.
 
-Valid examples: `0001_create_initial_schema.sql`, `0042_add_users_language_column.down.sql`, `01000_split_audit_log.seed.sql`.
-Invalid: `1_foo.sql` (no leading zero), `0000_foo.sql` (no non-zero digit), `0001-foo.sql` (hyphen not allowed), `0001_foo.txt` (wrong extension).
+Valid examples: `0001_create_initial_schema.sql`, `1234_create_users_table.sql`, `0042_add_users_language_column.down.sql`, `01000_split_audit_log.seed.sql`.
+Invalid: `0000_foo.sql` (no non-zero digit), `0_foo.sql` (version 0), `0001-foo.sql` (hyphen not allowed), `0001_foo.txt` (wrong extension).
 
 Notes about the parser (see `src/migrate.ts:48`):
 

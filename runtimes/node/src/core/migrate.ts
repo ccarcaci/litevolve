@@ -12,11 +12,12 @@ const read_current_version = (db: db_adapter): number =>
   (db.query("PRAGMA user_version").get() as { user_version: number }).user_version
 
 // Enforced filename format:
-//   0+[1-9][0-9]*_([a-z]|[A-Z]|_)+.(sql|seed.sql|down.sql)
-// At least one leading 0 acts as zero-padding, followed by a non-zero leading digit and
+//   0*[1-9][0-9]*_([a-z]|[A-Z]|_)+.(sql|seed.sql|down.sql)
+// Optional leading zeros for zero-padding, followed by a non-zero leading digit and
 // any digits, an underscore, a [a-zA-Z_]+ description, and one of three extensions.
-// Sort order strips the leading 0+ via parseInt, so 0999 sorts before 01000 numerically.
-const FILENAME_REGEX = /^(0+[1-9][0-9]*)_[a-zA-Z_]+\.(sql|seed\.sql|down\.sql)$/
+// Sort order strips leading zeros via parseInt, so 0999 sorts before 01000, and an
+// unpadded 42 sorts identically to 0042.
+const FILENAME_REGEX = /^(0*[1-9][0-9]*)_[a-zA-Z_]+\.(sql|seed\.sql|down\.sql)$/
 
 const read_migration_files = (
   direction: "up" | "down",
