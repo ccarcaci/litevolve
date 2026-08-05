@@ -22,5 +22,6 @@
     "@types/better-sqlite3": "9.6.0",
     "typescript": "7.0.2"
   },
-  "trustedDependencies": ["better-sqlite3"]
+  "trustedDependencies": ["better-sqlite3"],
+  "private": true
 }
