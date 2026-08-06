@@ -97,10 +97,16 @@ clean: ## remove node_modules, bun.lockb, *.db, runtimes/*/dist/
 
 ##@ development
 
-.PHONY: align_core
-align_core: ## align core directory with node and deno versions, bun version is the master one
+.PHONY: align_artifacts
+align_artifacts: ## align core directory with node and deno versions, bun version is the master one
 	cp -R $(BUN_SRC)/core/* $(RUNTIMES_DIR)/node/src/core
 	cp -R $(BUN_SRC)/core/* $(RUNTIMES_DIR)/deno/src/core
+	cp LICENSE $(RUNTIMES_DIR)/node/LICENSE
+	cp LICENSE $(RUNTIMES_DIR)/bun/LICENSE
+	cp LICENSE $(RUNTIMES_DIR)/deno/LICENSE
+	cp README.md $(RUNTIMES_DIR)/node/README.md
+	cp README.md $(RUNTIMES_DIR)/bun/README.md
+	cp README.md $(RUNTIMES_DIR)/deno/README.md
 
 .PHONY: test
 test: ## run core + bun adapter tests (e.g. make test <name>)

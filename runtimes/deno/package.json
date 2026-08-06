@@ -1,27 +1,47 @@
 {
-  "name": "litevolve-deno",
+  "name": "litevolve-bun",
   "version": "0.0.1",
-  "description": "Versioned SQLite migration runner for Deno (better-sqlite3) — library.",
+  "description": "Versioned SQLite migration runner for Bun — library or CLI.",
   "type": "module",
-  "exports": { ".": "./dist/index.js" },
+  "exports": {
+    ".": {
+      "bun": {
+        "types": "./src/index.ts",
+        "default": "./src/index.ts"
+      },
+      "default": "./dist/index.js"
+    }
+  },
   "types": "./dist/index.d.ts",
-  "files": ["dist"],
+  "files": [
+    "dist",
+    "src"
+  ],
+  "engines": {
+    "bun": "1.3.14"
+  },
   "license": "MIT",
   "author": "ccarcaci",
   "homepage": "https://github.com/ccarcaci/litevolve#readme",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/ccarcaci/litevolve.git",
-    "directory": "runtimes/deno"
+    "directory": "runtimes/bun"
   },
-  "keywords": ["sqlite", "migration", "migrations", "schema", "database", "deno"],
-  "dependencies": {
-    "better-sqlite3": "13.0.3"
+  "keywords": [
+    "sqlite",
+    "migration",
+    "migrations",
+    "schema",
+    "database",
+    "bun"
+  ],
+  "publishConfig": {
+    "provenance": true
   },
   "devDependencies": {
-    "@types/better-sqlite3": "9.6.0",
-    "typescript": "7.0.2"
-  },
-  "trustedDependencies": ["better-sqlite3"],
-  "private": true
+    "@biomejs/biome": "2.5.7",
+    "@changesets/cli": "2.31.1",
+    "@types/bun": "1.3.14"
+  }
 }
