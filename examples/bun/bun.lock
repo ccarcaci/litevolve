@@ -1,0 +1,15 @@
+{
+  "lockfileVersion": 1,
+  "configVersion": 1,
+  "workspaces": {
+    "": {
+      "name": "litevolve-example-bun",
+      "dependencies": {
+        "litevolve-bun": "0.0.2",
+      },
+    },
+  },
+  "packages": {
+    "litevolve-bun": ["litevolve-bun@0.0.2", "", {}, "sha512-11Co6+ZRxCmdlLziGU4VXNo+vh1QksX5kLJlXzNJsBjSUJW6j5FdXuLAcDY3L6SQcF63T34MLWiUojRi08yuxw=="],
+  }
+}

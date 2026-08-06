@@ -1,0 +1,9 @@
+{
+  "nodeModulesDir": "auto",
+  "tasks": {
+    "start": "deno run --allow-read --allow-write --allow-ffi main.ts"
+  },
+  "imports": {
+    "litevolve-deno": "npm:litevolve-deno@0.0.1"
+  }
+}
