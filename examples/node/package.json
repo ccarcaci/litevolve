@@ -1,0 +1,19 @@
+{
+  "name": "litevolve-example-node",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=22.18"
+  },
+  "scripts": {
+    "start": "node index.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "litevolve-node": "0.0.2"
+  },
+  "devDependencies": {
+    "@types/node": "26.1.2",
+    "typescript": "7.0.2"
+  }
+}
