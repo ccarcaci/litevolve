@@ -3,16 +3,17 @@
 Versioned SQLite migrations for Bun, Node, and Deno — usable as a library or a CLI.
 
 [![CI](https://github.com/ccarcaci/litevolve/actions/workflows/ci.yml/badge.svg)](https://github.com/ccarcaci/litevolve/actions/workflows/ci.yml)
-[![version](https://img.shields.io/github/package-json/v/ccarcaci/litevolve)](./package.json)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](./LICENSE)
-[![Bun](https://img.shields.io/badge/Bun-%3E%3D1.0-black?logo=bun)](https://bun.sh)
-[![Node](https://img.shields.io/badge/Node-%3E%3D20-339933?logo=node.js&logoColor=white)](https://nodejs.org)
-[![Deno](https://img.shields.io/badge/Deno-%3E%3D1.40-000?logo=deno)](https://deno.land)
-<!-- [![npm version](https://img.shields.io/npm/v/litevolve.svg)](https://www.npmjs.com/package/litevolve) -->
-<!-- [![npm downloads](https://img.shields.io/npm/dm/litevolve.svg)](https://www.npmjs.com/package/litevolve) -->
-<!-- [![JSR](https://jsr.io/badges/@litevolve/litevolve)](https://jsr.io/@litevolve/litevolve) -->
+
+[![litevolve-bun](https://img.shields.io/npm/v/litevolve-bun?logo=bun&logoColor=white&label=litevolve-bun&color=black)](https://www.npmjs.com/package/litevolve-bun)
+[![litevolve-node](https://img.shields.io/npm/v/litevolve-node?logo=node.js&logoColor=white&label=litevolve-node&color=339933)](https://www.npmjs.com/package/litevolve-node)
+[![litevolve-deno](https://img.shields.io/npm/v/litevolve-deno?logo=deno&logoColor=white&label=litevolve-deno&color=black)](https://www.npmjs.com/package/litevolve-deno)
+
+[![Bun](https://img.shields.io/badge/Bun-1.3.14-black?logo=bun)](https://bun.sh)
+[![Node](https://img.shields.io/badge/Node-%3E%3D22.5-339933?logo=node.js&logoColor=white)](https://nodejs.org)
+[![Deno](https://img.shields.io/badge/Deno-2.9-000?logo=deno)](https://deno.land)
+
 <!-- [![Homebrew installs](https://img.shields.io/homebrew/installs/dm/litevolve.svg)](https://formulae.brew.sh/formula/litevolve) -->
-<!-- [![Bundle size](https://img.shields.io/bundlephobia/minzip/litevolve.svg)](https://bundlephobia.com/package/litevolve) -->
 
 ---
 
@@ -20,17 +21,31 @@ Versioned SQLite migrations for Bun, Node, and Deno — usable as a library or a
 
 `litevolve` reads a directory of numbered SQL files (`{version}_name.sql`, `{version}_name.down.sql`, optional `{version}_name.seed.sql`) and applies them up or down against a SQLite database to reach a target schema version. Each step runs in a single `BEGIN IMMEDIATE` transaction so a failed seed rolls back its schema change too. The current schema version is tracked in SQLite's native `PRAGMA user_version`; a sticky `init_seeds` flag is recorded in an internal `_db_meta` table so seed behavior stays consistent across subsequent upgrades.
 
-## coming_soon
+## status
 
-`litevolve` is still in embrional phase.
+> [!WARNING]
+> Deno version of the library is not working, it has been published without being tested. The reason is that it needed to pin the "litevolve-deno" name on npm.
+> Use `litevolve-node` from Deno via `npm:` specifiers until this is finished.
 
-It will be available as:
-- `npm` package for use on Bun, Node, and Deno
-- executable for several targets (Darwin, Linux), architectures (x64, arm64), and platforms (glibc, musl)
-- executable for Bun, Node, and Deno ecosystems
-- docker image
 
-The following instructions might not work since the integration is missing.
+`litevolve` is early. One package per runtime is published on npm:
+
+| package                                                        | source            | state                                        |
+| -------------------------------------------------------------- | ----------------- | -------------------------------------------- |
+| [`litevolve-bun`](https://www.npmjs.com/package/litevolve-bun)   | `runtimes/bun`    | usable — this is the reference implementation |
+| [`litevolve-node`](https://www.npmjs.com/package/litevolve-node) | `runtimes/node`   | usable                                       |
+| [`litevolve-deno`](https://www.npmjs.com/package/litevolve-deno) | `runtimes/deno`   | **on hold, do not use** — see below           |
+
+`runtimes/bun` is the master copy: `make align_artifacts` copies `src/core` from it into the other
+two runtimes, and `make ci_check_align` fails the build if they have drifted. Only the thin
+adapter (`src/index.ts`, `src/*_adapter.ts`) differs per runtime.
+
+Not distributed yet, despite the sections below describing them:
+
+- **the CLI** — no package declares a `bin`, so `bunx litevolve` / `npx litevolve` do not work.
+  The CLI runs from a clone, or as a compiled binary you build yourself (`make ci_binary`)
+- **standalone binaries** — built and smoke-tested in CI, not attached to releases
+- **the docker image** — `scripts/Dockerfile` exists but no image is published
 
 ## install
 
@@ -43,8 +58,8 @@ npm install litevolve-node
 pnpm add litevolve-node
 yarn add litevolve-node
 
-# Deno (JSR) Not available yet
-deno add jsr:@litevolve-deno/litevolve-deno
+# Deno — litevolve-deno is not usable yet, reach for the node package
+deno add npm:litevolve-node
 
 # Homebrew (CLI only) Not available yet
 brew install litevolve
@@ -68,7 +83,11 @@ const db = migrate_db(
 )
 ```
 
-The signature lives at `src/migrate.ts:172` and the error type at `src/migration_error.ts:1`.
+`migrate_db` is defined per runtime in `runtimes/<runtime>/src/index.ts` — it opens the database,
+sets `journal_mode = WAL` and `foreign_keys = ON`, then delegates to the shared
+`migrate_with_adapter` in `src/core/migrate.ts`. It returns the open handle: a `Database` from
+`bun:sqlite` for the Bun package, a `DatabaseSync` from `node:sqlite` for the Node one. The error
+type is `migration_error` in `src/core/migration_error.ts`.
 
 ## CLI_usage
 
@@ -82,16 +101,26 @@ litevolve \
   --init_seeds
 ```
 
-Runtime-equivalent invocations:
+**No package ships a `bin` yet**, so this is reachable in two ways only. From a clone:
 
 ```sh
-bunx litevolve --apply_version=2 --db_path=./data/birds.db --migrations_path=./migrations
-npx  litevolve --apply_version=2 --db_path=./data/birds.db --migrations_path=./migrations
-deno run --allow-read --allow-write npm:litevolve \
+bun run runtimes/bun/src/run_litevolve.ts \
   --apply_version=2 --db_path=./data/birds.db --migrations_path=./migrations
 ```
 
+or as a binary you compile yourself:
+
+```sh
+make ci_binary TARGET=bun-darwin-arm64   # -> dist/litevolve
+dist/litevolve --apply_version=2 --db_path=./data/birds.db --migrations_path=./migrations
+```
+
+`make migrate` and `make migrate_seeds` wrap the first form.
+
 ## docker_usage
+
+**No image is published yet** — `scripts/Dockerfile` builds the multi-arch binaries but nothing
+pushes it to a registry. The intended usage, once it is:
 
 To run migrations during a Docker build without installing litevolve's runtime in your image, copy the binary from the official image in a multi-stage build:
 
@@ -134,21 +163,26 @@ Breakdown:
 | `.down.sql`    | down               | when target < N ≤ current_version    |
 | `.seed.sql`    | up + init_seeds    | optional, same transaction as `.sql` |
 
-Files that do not match the regex are silently skipped — keep auxiliary files (notes, fixtures, sub-directories) out of the migrations directory or they won't be picked up.
+Files that do not match the regex **throw** a `migration_error` and abort the run — the directory is
+read non-recursively and every entry in it must be a migration. Keep auxiliary files (notes,
+fixtures, sub-directories) out of the migrations directory, including `README.md`.
 
 **Sort order is numeric after stripping leading zeros**, not lexicographic. `0999_x.sql` sorts before `01000_y.sql` because `parseInt("0999")` is `999` and `parseInt("01000")` is `1000`. Padding is optional and its width can vary across migrations without breaking the order: `1_…`, `0042_…`, `0999_…`, `01000_…` all sort correctly together, and an unpadded `42_…` sorts identically to `0042_…`.
 
 Valid examples: `0001_create_initial_schema.sql`, `1234_create_users_table.sql`, `0042_add_users_language_column.down.sql`, `01000_split_audit_log.seed.sql`.
 Invalid: `0000_foo.sql` (no non-zero digit), `0_foo.sql` (version 0), `0001-foo.sql` (hyphen not allowed), `0001_foo.txt` (wrong extension).
 
-Notes about the parser (see `src/migrate.ts:48`):
+Notes about the parser (see `run_sql_statements` in `runtimes/bun/src/core/migrate.ts`):
 
-- Line comments `-- …` are stripped
+- Line comments `-- …` are stripped, then the file is split on `;` and each statement is run on its
+  own — `bun:sqlite` only surfaces the error of the *last* statement in a multi-statement string, so
+  a batched migration could silently COMMIT past a failure
+- The splitter is deliberately naive: no `;` or `--` inside string literals, no `BEGIN … END` triggers
 - Down migrations never apply seeds. Each `.down.sql` is responsible for its own data cleanup before dropping columns or tables
 
 ## `init_seeds`_semantics
 
-`init_seeds` is **sticky**: it is only honored when the database is at version 0 (fresh or fully rolled back). The chosen value is recorded in `_db_meta` and reused for every subsequent up-migration on the same database. Passing `--init_seeds` to a partially-migrated DB is silently ignored — this guarantees that a database either *consistently* has its seed rows or *consistently* does not. See the behavior contract in `src/migrate.test.ts` (the `init_seeds_*` tests).
+`init_seeds` is **sticky**: it is only honored when the database is at version 0 (fresh or fully rolled back). The chosen value is recorded in `_db_meta` and reused for every subsequent up-migration on the same database. Passing `--init_seeds` to a partially-migrated DB is silently ignored — this guarantees that a database either *consistently* has its seed rows or *consistently* does not. See the behavior contract in `runtimes/bun/src/migrate.test.ts` (the `init_seeds_*` tests).
 
 ## example_ornithology_database
 
@@ -184,21 +218,57 @@ The `migrations/working/` directory in this repository ships a runnable three-ve
 Drive it from the Makefile:
 
 ```sh
-make migrate_seeds DB_PATH=./birds.db VERSION=2
+make migrate_seeds DB_PATH=./birds.db VERSION=2 MIGRATIONS_PATH=./migrations/working
 sqlite3 ./birds.db "SELECT name, timezone FROM observation_sites;"
 ```
+
+`MIGRATIONS_PATH` is required here: it defaults to the repository root, which holds no migrations
+and would throw on the first non-matching filename.
+
+## repository_layout
+
+```
+runtimes/bun/     litevolve-bun   — master copy of src/core, plus the bun:sqlite adapter
+runtimes/node/    litevolve-node  — generated src/core, plus the node:sqlite adapter
+runtimes/deno/    litevolve-deno  — generated src/core, adapter unfinished
+migrations/       working/ example database, broken/ fixture used by the test suite
+scripts/          every CI step, as plain shell — the Makefile only calls into these
+```
+
+## release_process
+
+Versions are driven by [changesets](https://changesets.dev), one project per runtime.
+
+```sh
+# on a dev branch: bump package.json + CHANGELOG.md from the changeset files
+make yield_version
+
+# open a PR, get it reviewed, rebase main
+
+# on main, after the merge: tag the merged commit <package>@<semver>
+make yield_new_version
+git push --follow-tags
+```
+
+The tag is what publishes. `.github/workflows/publish.yml` triggers on
+`litevolve-{bun,node,deno}@*` tags, refuses any tag that is not an ancestor of `main`, re-checks the
+tag against `package.json`, then builds, tests, packs and publishes that one package to npm with
+[trusted publishing](https://docs.npmjs.com/trusted-publishers) and a provenance attestation.
 
 ## contributing_guidelines
 
 Refer to [Makefile](./Makefile) for a comprehensive list of available helping commands.
+`make ci_checks` runs the same checks CI does.
 
 - OSX is recommended for development
   - if you have any experience contributing to this library under Linux please share your setup
 - `litevolve` basic ecosystem is Bun
+- a fix to `src/core` goes into `runtimes/bun` and reaches the others through `make align_artifacts`
+  — editing a generated copy directly will fail `make ci_check_align`
 - Makefile approach is opinionated (sorry)
 - Use any editor but don't push any related configuration of it, keep it in your machine
   - I currently use [Helix editor](https://helix-editor.com/)
 
 ## license
 
-[MIT](./LICENSE.md)
+[MIT](./LICENSE)
