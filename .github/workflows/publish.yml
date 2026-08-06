@@ -1,0 +1,197 @@
+name: publish
+
+# release flow:
+#   dev branch  -> make yield_version      (bump package.json + CHANGELOG.md, review, PR)
+#   main rebased
+#   main        -> make yield_new_version  (tag the merged commit)
+#                  git push --follow-tags  -> this workflow
+#
+# one tag = one package: the tag names both what to publish and at which version.
+on:
+  push:
+    tags:
+      - "litevolve-bun@*"
+      - "litevolve-node@*"
+      - "litevolve-deno@*"
+
+# reset permissions, specify explicitly per job
+permissions: {}
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+
+jobs:
+  # a push event carries either a branch or a tag, never both, so "on main" cannot
+  # be expressed as a trigger filter - it has to be asserted against the history
+  guard:
+    name: tag is on main
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          fetch-depth: 0 # ancestry check needs main's history, not just the tag
+          persist-credentials: false
+
+      - name: tag must be an ancestor of main
+        run: |
+          git merge-base --is-ancestor "$GITHUB_SHA" origin/main || {
+            echo "tag $GITHUB_REF_NAME points at $GITHUB_SHA, which is not on main"
+            echo "tag the merged commit on main, not a branch commit"
+            exit 1; }
+
+  bun:
+    name: publish litevolve-bun
+    needs: guard
+    if: startsWith(github.ref_name, 'litevolve-bun@')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write # OIDC trusted publishing + provenance attestation
+    steps:
+      - name: checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+
+      - name: install bun
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2
+        with:
+          bun-version-file: ".bun-version"
+
+      - name: install node # npm is the publisher: bun publish has no OIDC support
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version-file: ".node-version"
+          registry-url: "https://registry.npmjs.org"
+
+      - name: install dependencies
+        run: bun install
+        working-directory: runtimes/bun
+
+      - name: verify tag matches package.json
+        working-directory: runtimes/bun
+        run: |
+          tagged="$(node -p "const p = require('./package.json'); p.name + '@' + p.version")"
+          [ "$tagged" = "$GITHUB_REF_NAME" ] || {
+            echo "tag $GITHUB_REF_NAME does not match package $tagged"; exit 1; }
+
+      - name: test # don't publish red code
+        run: scripts/ci_test.sh bun
+
+      - name: build # dist is gitignored - must be built before packing
+        run: scripts/ci_build.sh bun
+
+      - name: pack dry run # the tarball file list, in the log, before it is immutable
+        run: npm pack --dry-run
+        working-directory: runtimes/bun
+
+      - name: publish
+        run: npm publish --access public
+        working-directory: runtimes/bun
+
+  node:
+    name: publish litevolve-node
+    needs: guard
+    if: startsWith(github.ref_name, 'litevolve-node@')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write # OIDC trusted publishing + provenance attestation
+    steps:
+      - name: checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+
+      - name: install node
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version-file: ".node-version"
+          registry-url: "https://registry.npmjs.org"
+
+      - name: install esbuild # not a declared dependency of runtimes/node
+        run: npm install --global esbuild
+
+      - name: install dependencies
+        run: npm install
+        working-directory: runtimes/node
+
+      - name: verify tag matches package.json
+        working-directory: runtimes/node
+        run: |
+          tagged="$(node -p "const p = require('./package.json'); p.name + '@' + p.version")"
+          [ "$tagged" = "$GITHUB_REF_NAME" ] || {
+            echo "tag $GITHUB_REF_NAME does not match package $tagged"; exit 1; }
+
+      - name: test # don't publish red code
+        run: scripts/ci_test.sh node
+
+      # ci_build.sh calls bare `tsc`; the pinned one lives in the package, not on PATH
+      - name: build # dist is gitignored - must be built before packing
+        run: PATH="$PWD/runtimes/node/node_modules/.bin:$PATH" scripts/ci_build.sh node
+
+      - name: pack dry run # the tarball file list, in the log, before it is immutable
+        run: npm pack --dry-run
+        working-directory: runtimes/node
+
+      - name: publish
+        run: npm publish --access public
+        working-directory: runtimes/node
+
+  deno:
+    name: publish litevolve-deno
+    needs: guard
+    if: startsWith(github.ref_name, 'litevolve-deno@')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write # OIDC trusted publishing + provenance attestation
+    steps:
+      - name: checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+
+      - name: install deno
+        uses: denoland/setup-deno@22d081ff2d3a40755e97629de92e3bcbfa7cf2ed # v2.0.5
+        with:
+          deno-version-file: ".deno-version"
+
+      - name: install bun # ci_build.sh deno bundles with `bun build --target node`
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2
+        with:
+          bun-version-file: ".bun-version"
+
+      - name: install node # npm is the publisher
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version-file: ".node-version"
+          registry-url: "https://registry.npmjs.org"
+
+      - name: install dependencies
+        run: deno install
+        working-directory: runtimes/deno
+
+      - name: verify tag matches package.json
+        working-directory: runtimes/deno
+        run: |
+          tagged="$(node -p "const p = require('./package.json'); p.name + '@' + p.version")"
+          [ "$tagged" = "$GITHUB_REF_NAME" ] || {
+            echo "tag $GITHUB_REF_NAME does not match package $tagged"; exit 1; }
+
+      - name: test # don't publish red code
+        run: scripts/ci_test.sh deno
+
+      - name: build # dist is gitignored - must be built before packing
+        run: scripts/ci_build.sh deno
+
+      - name: pack dry run # the tarball file list, in the log, before it is immutable
+        run: npm pack --dry-run
+        working-directory: runtimes/deno
+
+      - name: publish
+        run: npm publish --access public
+        working-directory: runtimes/deno

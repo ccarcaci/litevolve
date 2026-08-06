@@ -4,7 +4,7 @@ Versioned SQLite migrations for Bun, Node, and Deno — usable as a library or a
 
 [![CI](https://github.com/ccarcaci/litevolve/actions/workflows/ci.yml/badge.svg)](https://github.com/ccarcaci/litevolve/actions/workflows/ci.yml)
 [![version](https://img.shields.io/github/package-json/v/ccarcaci/litevolve)](./package.json)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](./LICENSE.md)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](./LICENSE)
 [![Bun](https://img.shields.io/badge/Bun-%3E%3D1.0-black?logo=bun)](https://bun.sh)
 [![Node](https://img.shields.io/badge/Node-%3E%3D20-339933?logo=node.js&logoColor=white)](https://nodejs.org)
 [![Deno](https://img.shields.io/badge/Deno-%3E%3D1.40-000?logo=deno)](https://deno.land)

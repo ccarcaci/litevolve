@@ -59,17 +59,42 @@ migrate_seeds: _check_args ## migrate fresh DB to VERSION with seeds (--init_see
 
 NODE_CHANGESET_DIR := $(RUNTIMES_DIR)/node/.changeset
 BUN_CHANGESET_DIR := $(RUNTIMES_DIR)/bun/.changeset
+DENO_CHANGESET_DIR := $(RUNTIMES_DIR)/deno/.changeset
 .PHONY: yield_version
 .ONESHELL:
-yield_version: ## bump versions from changeset files (node + bun), if any changeset exists
+yield_version: ## bump versions from changeset files (node + bun + deno), commit and tag <pkg>@<semver>
 	@claude --print "Generate changeset file content for the changes in @runtimes/node/ folder relative to the current active branch" > $(NODE_CHANGESET_DIR)/curr_changeset.md
 	@claude --print "Generate changeset file content for the changes in @runtimes/bun/ folder relative to the current active branch" > $(BUN_CHANGESET_DIR)/curr_changeset.md
+	@claude --print "Generate changeset file content for the changes in @runtimes/deno/ folder relative to the current active branch" > $(DENO_CHANGESET_DIR)/curr_changeset.md
 	@if ls $(NODE_CHANGESET_DIR)/*.md 2>/dev/null | grep -qv README.md; then \
 		echo "versioning node..."; cd $(RUNTIMES_DIR)/node && npx changeset version; cd $(MAKEFILE_DIR); \
 	else echo "node: no changeset, skipping"; fi
 	@if ls $(BUN_CHANGESET_DIR)/*.md 2>/dev/null | grep -qv README.md; then \
 		echo "versioning bun..."; cd $(RUNTIMES_DIR)/bun && bunx changeset version; cd $(MAKEFILE_DIR); \
 	else echo "bun: no changeset, skipping"; fi
+	@if ls $(DENO_CHANGESET_DIR)/*.md 2>/dev/null | grep -qv README.md; then \
+		echo "versioning deno..."; cd $(RUNTIMES_DIR)/deno && npx changeset version; cd $(MAKEFILE_DIR); \
+	else echo "deno: no changeset, skipping"; fi
+
+# tag name and version both come from package.json, so they cannot drift from what
+# gets published - publish.yml re-runs the same check and refuses a mismatch.
+# annotated on purpose: `git push --follow-tags` ignores lightweight tags.
+.PHONY: yield_new_version
+.ONESHELL:
+yield_new_version: ## tag the current main commit <pkg>@<semver>, run after the dev branch is merged
+	@[ "$$(git rev-parse --abbrev-ref HEAD)" = "main" ] || \
+		{ echo "error: not on main - publish.yml refuses tags that are not on main"; exit 1; }
+	@git diff --quiet && git diff --cached --quiet || \
+		{ echo "error: uncommitted changes - the tag would not describe them"; exit 1; }
+	@for rt in bun node deno; do \
+		tag="$$(cd $(RUNTIMES_DIR)/$$rt && node -p "const p = require('./package.json'); p.name + '@' + p.version")"; \
+		if git rev-parse -q --verify "refs/tags/$$tag" >/dev/null; then \
+			echo "$$tag: already tagged, skipping"; \
+		else \
+			git tag -a -m "$$tag" "$$tag" && echo "tagged $$tag"; \
+		fi; \
+	done
+	@echo "now run: git push --follow-tags"
 
 ##@ setup and cleanup
 
