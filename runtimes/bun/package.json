@@ -4,18 +4,12 @@
   "description": "Versioned SQLite migration runner for Bun — library or CLI.",
   "type": "module",
   "exports": {
-    ".": {
-      "bun": {
-        "types": "./src/index.ts",
-        "default": "./src/index.ts"
-      },
-      "default": "./dist/index.js"
-    }
+    ".": "./src/index.ts"
   },
-  "types": "./dist/index.d.ts",
+  "types": "./src/index.ts",
   "files": [
-    "dist",
-    "src"
+    "src",
+    "!src/**/*.test.ts"
   ],
   "engines": {
     "bun": "1.3.14"
@@ -42,6 +36,6 @@
   "devDependencies": {
     "@biomejs/biome": "2.5.7",
     "@changesets/cli": "2.31.1",
-    "@types/bun": "1.3.14"
+    "@types/bun": "^1.3.14"
   }
 }

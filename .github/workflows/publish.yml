@@ -85,7 +85,7 @@ jobs:
         run: scripts/ci_build.sh bun
 
       - name: pack dry run # the tarball file list, in the log, before it is immutable
-        run: npm pack --dry-run
+        run: bun pm pack --dry-run
         working-directory: runtimes/bun
 
       - name: publish

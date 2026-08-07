@@ -90,7 +90,7 @@ const apply_migration = (
   } catch (err) {
     db.run("ROLLBACK")
     throw new migration_error(
-      "src/db_migrations/migrate",
+      "src/core/migrate",
       "apply_migration",
       `failed to apply ${file_path}`,
       err,
@@ -139,7 +139,7 @@ const migrate_up = (
 
   if (migrations.length === 0) {
     throw new migration_error(
-      "src/db_migrations/migrate",
+      "src/core/migrate",
       "migrate_up",
       `no up migration files found between version ${current_version} and ${apply_version}`,
     )
@@ -165,7 +165,7 @@ const migrate_down = (
 
   if (migrations.length === 0) {
     throw new migration_error(
-      "src/db_migrations/migrate",
+      "src/core/migrate",
       "migrate_down",
       `no down migration files found between version ${current_version} and ${apply_version}`,
     )

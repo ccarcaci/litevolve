@@ -3,7 +3,7 @@ import { tmpdir } from "node:os"
 import { join, resolve } from "node:path"
 import { migrate_db } from "litevolve-bun"
 
-const migrations_path = resolve(import.meta.dir, "../../migrations/working")
+const migrations_path = resolve(import.meta.dirname, "../../migrations/working")
 const db_path = join(tmpdir(), "litevolve_example_bun.db")
 const latest_version = 3
 

@@ -249,7 +249,7 @@ describe("migrate_db_file_based_database", () => {
     debugger
 
     expect(err.method).toBe("apply_migration")
-    expect(err.module_path).toBe("src/db_migrations/migrate")
+    expect(err.module_path).toBe("src/core/migrate")
     expect(err.cause).toMatch(/failed to apply [\s\S]*\/migrations\/broken\/0001_not_null_violation.sql/)
 
     //  --  assert: the wrapped error names the specific constraint type + column,
