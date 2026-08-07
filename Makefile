@@ -86,7 +86,8 @@ yield_new_version: ## tag the current main commit <pkg>@<semver>, run after the 
 		{ echo "error: not on main - publish.yml refuses tags that are not on main"; exit 1; }
 	@git diff --quiet && git diff --cached --quiet || \
 		{ echo "error: uncommitted changes - the tag would not describe them"; exit 1; }
-	@for rt in bun node ; do \ # add deno here to enable tagging
+	# add deno here to enable tagging
+	@for rt in bun node ; do \
 		tag="$$(cd $(RUNTIMES_DIR)/$$rt && node -p "const p = require('./package.json'); p.name + '@' + p.version")"; \
 		if git rev-parse -q --verify "refs/tags/$$tag" >/dev/null; then \
 			echo "$$tag: already tagged, skipping"; \
