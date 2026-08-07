@@ -1,4 +1,25 @@
-# litevolve-node
+# litevolve-deno
+
+## 0.0.3
+
+### Patch Changes
+
+- Make the package actually run on Deno. `migrate_db` now opens the database with `node:sqlite`'s `DatabaseSync` through the shared `node_db_adapter` instead of importing `bun:sqlite`, and the `better-sqlite3`-backed `deno_db_adapter` is deleted along with the dependency. `engines` now declares `deno >=2.9` instead of `bun 1.3.14`, and `tsconfig` types switch from `bun` to `node`.
+
+  Also remove the stale root `index.ts` (dead copy of `migrate_db` that referenced an unimported `migrate_with_adapter`), and correct the module path reported in `migration_error` from `src/db_migrations/migrate` to `src/core/migrate`.
+
+  ```
+
+  Left out as non-consumer-facing: `deno.lock` replacing `bun.lock`/`package-lock.json`, `biome.json` removal, the `Makefile` shell target moving to `alpine:edge`, and the added `@types/node`/`typescript`/`@changesets/cli` dev tooling.
+
+  Three flaws worth pushing back on:
+
+  - **`patch` vs `minor`:** `migrate_db`'s return type changed from `bun:sqlite`'s `Database` to `DatabaseSync` — normally minor. I chose `patch` because 0.0.2 imported `bun:sqlite` and declared `engines.bun`, so no Deno consumer could ever have depended on the old type. If `litevolve-deno@0.0.2` is actually installed anywhere, bump this to `minor`.
+  - **The Deno runtime now has zero tests.** `src/migrate.test.ts` (419 lines) was deleted with no `Deno.test` replacement. The bun and node runtimes keep theirs. This changeset ships an untested backend swap.
+  - **`scripts/ci_build.sh` looks broken for deno:** the command became `deno compile ... --bundle --target node --external better-sqlite3 --outdir`, but those are `bun build` flags and `deno compile` emits a standalone executable, not `dist/index.js` — which is what `package.json` `exports` points at. I could not fetch the Deno CLI docs to confirm (WebFetch permission denied), so treat this as unverified — but check it before releasing, since a broken build means an empty/absent `dist`. `deno bundle` is likely what you want.
+
+  Want me to write the file?
+  ```
 
 ## 0.0.2
 

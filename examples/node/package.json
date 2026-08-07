@@ -10,7 +10,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "litevolve-node": "0.0.2"
+    "litevolve-node": "0.0.3"
   },
   "devDependencies": {
     "@types/node": "26.1.2",
