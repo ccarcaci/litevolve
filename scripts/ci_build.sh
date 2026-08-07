@@ -20,7 +20,7 @@ case "$FRAMEWORK" in
     tsc --project runtimes/node/tsconfig.json
     ;;
   deno)
-    bun build runtimes/deno/src/index.ts \
+    deno compile runtimes/deno/src/index.ts \
       --bundle --target node \
       --external better-sqlite3 \
       --outdir runtimes/deno/dist/
