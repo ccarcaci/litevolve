@@ -1,5 +1,16 @@
 # litevolve-node
 
+## 0.0.3
+
+### Patch Changes
+
+- Correct the module path reported in `migration_error` from `src/db_migrations/migrate` to `src/core/migrate`, and exclude `node_modules` and `dist` from the TypeScript build.
+
+  ```
+
+  Diff vs `main` is only those two files: 3 error-message strings in `src/core/migrate.ts` and the `exclude` in `tsconfig.json`. Both patch-level, no API change.
+  ```
+
 ## 0.0.2
 
 ### Patch Changes

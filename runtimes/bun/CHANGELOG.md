@@ -1,5 +1,18 @@
 # litevolve-bun
 
+## 0.0.3
+
+### Patch Changes
+
+- Ship the package straight from TypeScript source: `exports` and `types` now point at `src/index.ts`, `dist` is dropped from `files`, and tests are excluded from the published tarball. Also remove the stale root `index.ts` (dead `node:sqlite` copy of `migrate_db`), correct the module path reported in `migration_error` from `src/db_migrations/migrate` to `src/core/migrate`, and add `node` to `tsconfig` types.
+
+  ```
+
+  Left out of the note: `bun.lock` churn and the `@types/bun` pin → `^1.3.14` (devDep, not consumer-facing).
+
+  One flaw worth flagging: dropping `dist` from `exports` means anything other than Bun resolving `litevolve-bun` now gets raw TS. That's fine if Bun-only is the contract, but it's a consumer-visible packaging change — arguably `minor`, not `patch`, if anyone was relying on the `default` → `./dist/index.js` condition at 0.0.2.
+  ```
+
 ## 0.0.2
 
 ### Patch Changes

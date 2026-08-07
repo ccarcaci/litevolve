@@ -1,6 +1,6 @@
 {
   "name": "litevolve-bun",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "description": "Versioned SQLite migration runner for Bun — library or CLI.",
   "type": "module",
   "exports": {
