@@ -126,7 +126,7 @@ jobs:
           [ "$tagged" = "$GITHUB_REF_NAME" ] || {
             echo "tag $GITHUB_REF_NAME does not match package $tagged"; exit 1; }
 
-      - name: test # don't publish red code
+      - name: test # execute node-specific tests, reference test suite has been writted for bun
         run: scripts/ci_test.sh node
 
       # ci_build.sh calls bare `tsc`; the pinned one lives in the package, not on PATH
@@ -182,7 +182,7 @@ jobs:
           [ "$tagged" = "$GITHUB_REF_NAME" ] || {
             echo "tag $GITHUB_REF_NAME does not match package $tagged"; exit 1; }
 
-      - name: test # don't publish red code
+      - name: test # execute node-specific tests, reference test suite has been writted for bun
         run: scripts/ci_test.sh deno
 
       - name: build # dist is gitignored - must be built before packing

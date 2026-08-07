@@ -10,12 +10,15 @@ FRAMEWORK="$1"
 echo "executing $FRAMEWORK tests"
 case "$FRAMEWORK" in
   bun)
+    # execute the main test suite for unit tests, written for Bun specifically
     bun test --isolate --parallel=4 runtimes/bun/
     ;;
   node)
+    # execute node-specific tests
     node --test runtimes/node/**/*.test.ts
     ;;
   deno)
+    # execute deno-specific tests
     deno test --allow-read --allow-write runtimes/deno/
     ;;
   *)
