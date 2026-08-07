@@ -1,14 +1,14 @@
+
 {
   "compilerOptions": {
     // Environment setup & latest features
-    "lib": ["ESNext"],
-    "target": "ESNext",
-    "module": "Preserve",
-    "moduleDetection": "force",
-    "types": ["deno"],
+    "lib": ["esnext"],
+    "target": "esnext",
+    "module": "nodenext",
+    "types": ["bun", "node"],
 
     // Bundler mode
-    "moduleResolution": "bundler",
+    "moduleResolution": "nodenext",
     "allowImportingTsExtensions": true,
     "noEmit": true,
 
@@ -24,6 +24,6 @@
     "noUnusedParameters": false,
     "noPropertyAccessFromIndexSignature": false,
   },
-  "include": ["src/**/*.ts"],
+  "include": ["*.ts"],
   "exclude": ["node_modules", "dist"]
 }

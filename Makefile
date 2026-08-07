@@ -31,8 +31,8 @@ help: ## show this help message
 
 .PHONY: _check_args
 _check_args:
-	@[ -n "$(DB_PATH)" ] || (echo "error: DB_PATH is required  (e.g. make migrate DB_PATH=./data/rsvr.db VERSION=1)"; exit 1)
-	@[ -n "$(VERSION)" ] || (echo "error: VERSION is required  (e.g. make migrate DB_PATH=./data/rsvr.db VERSION=1)"; exit 1)
+	@[ -n "$(DB_PATH)" ] || (echo "error: DB_PATH is required  (e.g. make migrate DB_PATH=./data/example_foo.db VERSION=1)"; exit 1)
+	@[ -n "$(VERSION)" ] || (echo "error: VERSION is required  (e.g. make migrate DB_PATH=./data/example_bar.db VERSION=1)"; exit 1)
 
 .PHONY: migrate
 .ONESHELL:
