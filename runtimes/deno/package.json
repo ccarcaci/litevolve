@@ -14,7 +14,7 @@
     "src"
   ],
   "engines": {
-    "bun": "1.3.14"
+    "deno": ">=2.9"
   },
   "license": "MIT",
   "author": "ccarcaci",
@@ -34,5 +34,10 @@
     "schema",
     "database",
     "deno"
-  ]
+  ],
+  "devDependencies": {
+    "@changesets/cli": "2.31.1",
+    "@types/node": "26.1.2",
+    "typescript": "7.0.2"
+  }
 }
