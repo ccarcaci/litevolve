@@ -11,6 +11,7 @@ type migration_file_type = {
 const read_current_version = (db: db_adapter): number =>
   (db.query("PRAGMA user_version").get() as { user_version: number }).user_version
 
+const EXTENSION_REGEX = /(sql|seed\.sql|down\.sql)$/
 // Enforced filename format:
 //   0*[1-9][0-9]*_([a-z]|[A-Z]|_)+.(sql|seed.sql|down.sql)
 // Optional leading zeros for zero-padding, followed by a non-zero leading digit and
@@ -23,19 +24,24 @@ const read_migration_files = (
   direction: "up" | "down",
   migrations_path: string,
 ): migration_file_type[] =>
-  readdirSync(migrations_path).flatMap((f) => {
-    const match = f.match(FILENAME_REGEX)
-    if (!match) {
-      throw new migration_error("src/core/migrate", "read_migration_files", `file name in ${f} doesn't fit with filename spec`)
-    }
-    const extension = match[2] // "sql" | "seed.sql" | "down.sql"
-    if (direction === "up" && extension !== "sql") return []
-    if (direction === "down" && extension !== "down.sql") return []
-    if (!match[1]) return []
-    const version = parseInt(match[1], 10)
-    if (version <= 0) return []
-    return [{ version, file_path: resolve(migrations_path, f) }]
-  })
+  readdirSync(migrations_path)
+    .filter((f) => {
+      const match = f.match(EXTENSION_REGEX)
+      return match !== null
+    })
+    .flatMap((f) => {
+      const match = f.match(FILENAME_REGEX)
+      if (!match) {
+        throw new migration_error("src/core/migrate", "read_migration_files", `file name in ${f} doesn't fit with filename spec`)
+      }
+      const extension = match[2] // "sql" | "seed.sql" | "down.sql"
+      if (direction === "up" && extension !== "sql") return []
+      if (direction === "down" && extension !== "down.sql") return []
+      if (!match[1]) return []
+      const version = parseInt(match[1], 10)
+      if (version <= 0) return []
+      return [{ version, file_path: resolve(migrations_path, f) }]
+    })
 
 // Derives the optional seed file path from an up migration file path.
 // Example: 0042_add_users_language_column.sql → 0042_add_users_language_column.seed.sql
