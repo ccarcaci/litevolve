@@ -1,5 +1,23 @@
 # litevolve-bun
 
+## 0.0.4
+
+### Patch Changes
+
+- Skip non-migration files when reading the migrations directory. Previously any file in `migrations_path` that didn't match the filename spec threw a `migration_error`, so a stray `README.md` or `.DS_Store` broke `migrate_db`. Entries are now filtered by extension first, and only files that look like migrations are validated against the filename spec.
+
+  ```
+
+  Scope note: `origin/main == HEAD == e731ced`, so there is no branch diff. The only unreleased bun change since the 0.0.3 bump (`23bd77a`) is `e731ced`, which is what the changeset covers.
+
+  Two flaws in the change itself, not in the changeset:
+
+  - `EXTENSION_REGEX = /(sql|seed\.sql|down\.sql)$/` isn't anchored on the dot, so `notasql` or `mysql` still passes the filter and then throws on `FILENAME_REGEX` — the reported bug is only half fixed. `/\.(sql)$/` covers all three cases.
+  - The alternation is dead weight regardless: `seed.sql` and `down.sql` both end in `sql`, so the whole regex collapses to `/sql$/`. And `.filter((f) => { const match = f.match(...); return match !== null })` is `.filter((f) => EXTENSION_REGEX.test(f))`.
+
+  Also: `migrations/working/this_file_is_not_a_migration` was added as the fixture but no test asserts on it — the regression isn't actually covered.
+  ```
+
 ## 0.0.3
 
 ### Patch Changes

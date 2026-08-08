@@ -1,5 +1,16 @@
 # litevolve-node
 
+## 0.0.4
+
+### Patch Changes
+
+- Skip files without a `.sql`, `.seed.sql` or `.down.sql` extension when reading the migrations directory, instead of throwing on them. Stray files such as `.DS_Store`, `.gitkeep` or editor swap files no longer abort a migration run; filenames that do end in a SQL extension but break the naming spec still throw as before.
+
+  ```
+
+  Basis: `23bd77a..HEAD` (last release bump) touches only `src/core/migrate.ts` (`EXTENSION_REGEX` pre-filter in `read_migration_files`) plus the `@types/node` 26.1.2→26.2.0 devDependency bump — left out, dev-only, no consumer impact.
+  ```
+
 ## 0.0.3
 
 ### Patch Changes
