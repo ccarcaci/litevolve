@@ -1,77 +1,84 @@
+**litevolve** is a versioned SQLite migration runner, published as three packages
+(`litevolve-bun`, `litevolve-node`, `litevolve-deno`) sharing one core.
 
-Default to using Bun instead of Node.js.
+## The one rule that matters
 
-- Use `bun <file>` instead of `node <file>` or `ts-node <file>`
-- Use `bun test` instead of `jest` or `vitest`
-- Use `bun build <file.html|file.ts|file.css>` instead of `webpack` or `esbuild`
-- Use `bun install` instead of `npm install` or `yarn install` or `pnpm install`
-- Use `bun run <script>` instead of `npm run <script>` or `yarn run <script>` or `pnpm run <script>`
-- Use `bunx <package> <command>` instead of `npx <package> <command>`
-- Bun automatically loads .env, so don't use dotenv.
+`runtimes/bun/src/core/` is the **master copy**. `runtimes/node/src/core/` and
+`runtimes/deno/src/core/` are byte-identical copies of it.
 
-## APIs
+Never edit the node or deno copies. Edit bun's, then run `make align_artifacts`.
+`scripts/ci_check_align.sh` fails CI on any divergence (it also enforces that `LICENSE` and
+`README.md` are copied into all three packages).
 
-- `bun:sqlite` for SQLite. Don't use `better-sqlite3`.
-- Prefer `Bun.file` over `node:fs`'s readFile/writeFile
+## Layout
 
-## Testing
+| Path                                | Role                                                                        |
+| ----------------------------------- | --------------------------------------------------------------------------- |
+| `runtimes/bun/src/core/migrate.ts`  | All migration logic. Exports `migrate_with_adapter`. DB-agnostic.           |
+| `runtimes/bun/src/core/db_adapter.ts` | `db_adapter` / `query_result` types — the seam the core talks through      |
+| `runtimes/bun/src/core/migration_error.ts` | `migration_error extends Error`                                      |
+| `runtimes/*/src/index.ts`           | Per-runtime `migrate_db` — opens the DB, sets pragmas, calls the core       |
+| `runtimes/{node,deno}/src/node_adapter.ts` | `node_db_adapter` wrapping `node:sqlite` to fit `db_adapter`         |
+| `runtimes/{bun,deno}/src/run_litevolve.ts` | CLI entry point (node ships as a library only)                       |
+| `runtimes/bun/src/migrate.test.ts`  | **The entire test suite.** Bun-only; node/deno have no tests.               |
+| `migrations/working/`               | Runnable ornithology example, 3 versions with up/down/seed                  |
+| `migrations/broken/`                | Intentionally-invalid migration (constraint-failure path)                   |
+| `migrations/invalid_filename/`      | Filenames the discovery regex must reject                                   |
+| `scripts/`                          | All CI shell scripts + the multi-arch binary `Dockerfile`                   |
 
-Use `bun test` to run tests. Tests live in `src/` alongside source files (e.g. `src/migrate.test.ts`).
+## SQLite per runtime
 
-Run tests: `make ci_test` (parallel, isolated) or `make test_debug` (with debugger).
+- bun: `bun:sqlite` `Database` — already satisfies `db_adapter`, passed to the core directly.
+- node and deno: `node:sqlite` `DatabaseSync`, wrapped in `node_db_adapter`.
+- Never `better-sqlite3`.
 
-## Project
+Core code uses `node:fs` (`existsSync`, `readdirSync`, `readFileSync`) — **not** `Bun.file` —
+because the same file has to run on all three runtimes.
 
-**litevolve** is a versioned SQLite migration runner usable as a library (`migrate_db`) or a CLI binary.
+## Conventions
 
-### Source layout
+- `snake_case` everywhere: types, functions, variables, class names, files. No camelCase.
+- Throw `migration_error`: `new migration_error(module_path, method, cause_message, original_error?)`.
+- Mark deliberate shortcuts with a `ponytail:` comment.
 
-| File                     | Role                                                                                 |
-| ------------------------ | ------------------------------------------------------------------------------------ |
-| `src/migrate.ts`         | Core logic: file discovery, `migrate_up`, `migrate_down`, `migrate_db` (public API) |
-| `src/run_litevolve.ts`   | CLI entry point — parses flags and calls `migrate_db`                                |
-| `src/migration_error.ts` | `migration_error` class (extends `Error`)                                            |
-| `src/index.ts`           | Library entry point — re-exports `migrate_db` and `migration_error`                  |
-| `src/migrate.test.ts`    | All tests                                                                            |
-| `migrations/working/`    | Example ornithology DB (3 versions, up/down/seed files)                              |
-| `migrations/broken/`     | Intentionally-invalid migration used by the test suite (constraint-failure path)     |
+## Migration internals
 
-### Naming conventions
+- Schema version lives in SQLite's `PRAGMA user_version`.
+- Seed preference lives in `_db_meta` (key `init_seeds`); sticky, only settable while at v0.
+- Each step runs in `BEGIN IMMEDIATE` — a failed seed rolls back its schema change.
+- Statements split on `;` *before* comment stripping — never put `;` inside a SQL comment.
 
-All identifiers use `snake_case` (types, functions, variables, files). No camelCase.
+Filename format: `0*[1-9][0-9]*_([a-zA-Z_]+)\.(sql|seed\.sql|down\.sql)`
+e.g. `0001_create_initial_schema.sql`, `0042_add_users.down.sql`, `01000_split_log.seed.sql`.
+Leading-zero padding optional; version 0 is invalid.
 
-### Error handling
+## Commands
 
-Use `migration_error` from `src/migration_error.ts` for all thrown errors. Constructor: `new migration_error(module_path, method, cause_message, original_error?)`.
+| Target                                       | Purpose                                        |
+| -------------------------------------------- | ---------------------------------------------- |
+| `make ci_checks`                             | Everything CI runs, in order                   |
+| `make test [name]`                           | Bun tests, optionally filtered by name         |
+| `make test_debug [name]`                     | Same, with `--inspect-wait`                    |
+| `make ci_test`                               | Tests as CI runs them (isolated, parallel)     |
+| `make ci_check_align`                        | Verify the core copies match                   |
+| `make ci_check_lint` / `make format`         | Biome check / auto-fix                         |
+| `make ci_check_build`                        | Bundle check + `tsc --noEmit`                  |
+| `make ci_sec`                                | `bun audit`                                    |
+| `make align_artifacts`                       | Copy bun core → node + deno, and LICENSE/README |
+| `make migrate DB_PATH=<p> VERSION=<n>`       | Apply migrations up/down                       |
+| `make migrate_seeds DB_PATH=<p> VERSION=<n>` | Fresh DB with seeds                            |
+| `make ci_binary TARGET=bun-darwin-arm64`     | Compile a standalone binary                    |
 
-### Migration internals
+The `scripts/ci_*.sh` scripts take a runtime argument (`bun`, `node`, `deno`); the root
+Makefile only wires up the bun ones. Deno CI is currently disabled (`if: false` in
+`.github/workflows/ci.yml`), so deno changes are unverified by CI.
 
-- Schema version tracked via SQLite `PRAGMA user_version`.
-- Seed preference tracked in `_db_meta` table (key `init_seeds`); sticky after DB is at v0.
-- Each step runs inside `BEGIN IMMEDIATE` transaction — seed failure rolls back the schema change.
-- Statements split on `;` before comment stripping — avoid `;` inside SQL comments in migration files.
+Tooling: Bun for dev, install, test, and binary compilation. Biome for lint/format, config at
+`runtimes/bun/biome.json`. The node package is bundled with **esbuild** (`scripts/ci_build.sh`),
+not `bun build`.
 
-### Migration filename format
+## Dependency pins
 
-```
-0*[1-9][0-9]*_([a-zA-Z_]+)\.(sql|seed\.sql|down\.sql)
-```
-
-Examples: `0001_create_initial_schema.sql`, `1234_create_users_table.sql`, `0042_add_users.down.sql`, `01000_split_log.seed.sql`. Leading-zero padding is optional.
-
-### Key Makefile targets
-
-| Target                                          | Purpose                         |
-| ----------------------------------------------- | ------------------------------- |
-| `make ci_test`                                  | Run tests (parallel, isolated)  |
-| `make ci_lint`                                  | Biome linter                    |
-| `make ci_check_build`                           | Compile check + `tsc --noEmit`  |
-| `make ci_sec`                                   | Security audit (prod deps)      |
-| `make format`                                   | Auto-fix formatting and linting |
-| `make migrate DB_PATH=<p> VERSION=<n>`          | Apply migrations up/down        |
-| `make migrate_seeds DB_PATH=<p> VERSION=<n>`    | Migrate fresh DB with seeds     |
-| `make ci_binary TARGET=<bun-darwin-arm64\|…>`   | Compile standalone binary       |
-
-### Linter
-
-Biome (`bunx biome`). Config lives in `biome.json` if present. Run `make format` to auto-fix.
+`DEPENDENCY_PINS.md` inventories every hardcoded third-party version and which ones Renovate
+does not cover. Consult it before bumping a runtime version — several pins are duplicated
+across `.bun-version`, `engines`, Dockerfiles, example Makefiles, and README badges.
