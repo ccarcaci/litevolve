@@ -1,5 +1,24 @@
 # litevolve-deno
 
+## 0.0.4
+
+### Patch Changes
+
+- Skip files without a SQL extension when reading the migrations directory. Previously every entry in `migrations_path` was validated against the filename spec and anything else threw a `migration_error`, so a stray `README.md` or `.DS_Store` aborted `migrate_db`. Entries are now filtered by extension first; filenames that do end in `.sql` but break the naming spec still throw as before.
+
+  ```
+
+  Basis: `origin/main == HEAD == e731ced`, so there is no branch diff. `23bd77a..HEAD` (the 0.0.3 release bump) touches exactly one deno file — `src/core/migrate.ts` — which is `e731ced`. Nothing else to describe.
+
+  Three things worth pushing back on, none of them about the changeset:
+
+  - `EXTENSION_REGEX = /(sql|seed\.sql|down\.sql)$/` is unanchored on the dot, so `mysql` or `notasql` still passes the filter and throws — the reported bug is half fixed. The alternation is also dead: all three branches end in `sql`, so it collapses to `/\.sql$/`. Same defect I flagged on the bun changeset; it's identical code in all three runtimes.
+  - The deno runtime has **zero tests** (`src/migrate.test.ts` was deleted in 0.0.3 with no `Deno.test` replacement), so this fix ships unverified here even though bun/node could cover it.
+  - `runtimes/deno/CHANGELOG.md` 0.0.3 has a raw conversational blob pasted into it — "Three flaws worth pushing back on… Want me to write the file?" — inside a stray fenced block. That's published to npm as the release notes. Worth fixing before the next release.
+
+  Say the word and I'll write the file and/or clean the CHANGELOG.
+  ```
+
 ## 0.0.3
 
 ### Patch Changes
