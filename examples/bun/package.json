@@ -6,7 +6,7 @@
     "start": "bun index.ts"
   },
   "dependencies": {
-    "litevolve-bun": "0.0.3"
+    "litevolve-bun": "0.1.0"
   },
   "devDependencies": {
     "@types/node": "26.2.0"
