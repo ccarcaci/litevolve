@@ -1,3 +1,4 @@
+#!/usr/bin/env bun
 import { parseArgs } from "node:util"
 import { migrate_db } from "./index"
 import { migration_error } from "./core"

@@ -9,6 +9,9 @@
     }
   },
   "types": "./dist/index.d.ts",
+  "bin": {
+    "litevolve": "./dist/run_litevolve.js"
+  },
   "files": ["dist"],
   "engines": {
     "deno": ">=2.9"

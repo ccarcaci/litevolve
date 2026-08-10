@@ -17,10 +17,15 @@ case "$FRAMEWORK" in
   node)
     # esbuild bundles src/core into dist/index.js; tsc emits .d.ts only (emitDeclarationOnly in tsconfig)
     esbuild runtimes/node/src/index.ts --bundle --platform=node --format=esm --external:node:* --outfile=runtimes/node/dist/index.js
+    esbuild runtimes/node/src/run_litevolve.ts --bundle --platform=node --format=esm --external:node:* --outfile=runtimes/node/dist/run_litevolve.js
     tsc --project runtimes/node/tsconfig.json
     ;;
   deno)
     deno compile runtimes/deno/src/index.ts \
+      --bundle --target node \
+      --external better-sqlite3 \
+      --outdir runtimes/deno/dist/
+    deno compile runtimes/deno/src/run_litevolve.ts \
       --bundle --target node \
       --external better-sqlite3 \
       --outdir runtimes/deno/dist/

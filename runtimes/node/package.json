@@ -10,6 +10,9 @@
     ".": "./dist/index.js"
   },
   "types": "./dist/index.d.ts",
+  "bin": {
+    "litevolve": "./dist/run_litevolve.js"
+  },
   "files": [
     "dist"
   ],
