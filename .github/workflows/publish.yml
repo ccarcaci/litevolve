@@ -81,9 +81,6 @@ jobs:
       - name: test # don't publish red code
         run: scripts/ci_test.sh bun
 
-      - name: build # dist is gitignored - must be built before packing
-        run: scripts/ci_build.sh bun
-
       - name: pack dry run # the tarball file list, in the log, before it is immutable
         run: bun pm pack --dry-run
         working-directory: runtimes/bun
