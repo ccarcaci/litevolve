@@ -1,6 +1,6 @@
 {
   "name": "litevolve-deno",
-  "version": "0.0.4",
+  "version": "0.0.5",
   "description": "Versioned SQLite migration runner for Deno — library or CLI.",
   "type": "module",
   "exports": {
@@ -36,7 +36,7 @@
     "deno"
   ],
   "devDependencies": {
-    "@types/node": "26.2.0"
+    "@types/node": "26.2.0",
     "@changesets/cli": "2.31.1",
     "typescript": "7.0.2"
   }
