@@ -1,5 +1,20 @@
 # litevolve-node
 
+## 0.1.0
+
+### Minor Changes
+
+- Declare a `litevolve` `bin` entry point backed by a new `src/run_litevolve.ts` CLI (parses `--apply_version`, `--db_path`, `--migrations_path`, `--init_seeds` and calls `migrate_db`), so `npx litevolve-node ...` runs migrations without cloning the repo. README updated to document it.
+
+  ​``
+Basis: `litevolve-node@0.0.5..HEAD` touches `runtimes/node/package.json` (`bin` field), the new `runtimes/node/src/run_litevolve.ts`, and `runtimes/node/README.md` — all in scope for the bin addition.
+​``
+
+  ```
+
+  Reasoning: `litevolve-node@0.0.5` is the latest node tag; the only commit since (`3208d06`) touching `runtimes/node/` adds the `bin` field, the CLI script, and the README section for it — a new public capability, so `minor` (matches semver convention; all prior node changesets were `patch` bug/infra fixes, this is the first feature).
+  ```
+
 ## 0.0.5
 
 ### Patch Changes

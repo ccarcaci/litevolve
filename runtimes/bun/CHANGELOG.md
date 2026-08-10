@@ -1,5 +1,16 @@
 # litevolve-bun
 
+## 0.1.0
+
+### Minor Changes
+
+- Declare a `litevolve` `bin` entry point (`./src/run_litevolve.ts`, now with a `#!/usr/bin/env bun` shebang), so `bunx litevolve-bun ...` runs migrations without cloning the repo. README updated: drops the "no package declares a `bin`" caveat and documents `bunx`/`npx` usage alongside the existing clone/compiled-binary paths.
+
+  ​```Basis:`litevolve-bun@0.0.5..HEAD`touches only`runtimes/bun/package.json` (`bin`field),`runtimes/bun/src/run_litevolve.ts`(shebang), and`runtimes/bun/README.md` (docs) — all in scope for the bin addition, matching the single commit in range (`3208d06`).
+
+  `minor`, not `patch`: this is a new public capability (a runnable CLI entry point), not a bug fix — consistent with the `litevolve-node` changeset for the same commit.
+  ​```
+
 ## 0.0.5
 
 ### Patch Changes
