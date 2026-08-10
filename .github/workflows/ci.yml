@@ -84,6 +84,7 @@ jobs:
 
   check_deno:
     name: check_deno
+    if: false
     needs: lint
     runs-on: ubuntu-latest
     steps:

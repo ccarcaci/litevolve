@@ -1,4 +1,4 @@
-IMAGE ?= oven/bun:1.3.14
+IMAGE ?= oven/bun:latest
 CONTAINER ?= litevolve_example_bun
 PKG := litevolve-bun
 
