@@ -63,9 +63,9 @@ DENO_CHANGESET_DIR := $(RUNTIMES_DIR)/deno/.changeset
 .PHONY: yield_version
 .ONESHELL:
 yield_version: ## bump versions from changeset files (node + bun + deno), commit and tag <pkg>@<semver>
-	@claude --print "Generate changeset file content for the changes in @runtimes/node/ folder relative to the current active branch" > $(NODE_CHANGESET_DIR)/curr_changeset.md
-	@claude --print "Generate changeset file content for the changes in @runtimes/bun/ folder relative to the current active branch" > $(BUN_CHANGESET_DIR)/curr_changeset.md
-	@claude --print "Generate changeset file content for the changes in @runtimes/deno/ folder relative to the current active branch" > $(DENO_CHANGESET_DIR)/curr_changeset.md
+	@claude --print "Generate changeset file content for the changes in @runtimes/node/ folder relative to the changes from the latest tag to the current commit" > $(NODE_CHANGESET_DIR)/curr_changeset.md
+	@claude --print "Generate changeset file content for the changes in @runtimes/bun/ folder relative to the changes from the latest tag to the current commit" > $(BUN_CHANGESET_DIR)/curr_changeset.md
+	@claude --print "Generate changeset file content for the changes in @runtimes/deno/ folder relative to the changes from the latest tag to the current commit" > $(DENO_CHANGESET_DIR)/curr_changeset.md
 	@if ls $(NODE_CHANGESET_DIR)/*.md 2>/dev/null | grep -qv README.md; then \
 		echo "versioning node..."; cd $(RUNTIMES_DIR)/node && npx changeset version; cd $(MAKEFILE_DIR); \
 	else echo "node: no changeset, skipping"; fi
