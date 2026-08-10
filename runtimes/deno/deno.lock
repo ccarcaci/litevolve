@@ -1,8 +1,8 @@
 {
   "version": "5",
   "specifiers": {
-    "npm:@changesets/cli@2.31.1": "2.31.1_@types+node@26.1.2",
-    "npm:@types/node@^26.1.2": "26.1.2",
+    "npm:@changesets/cli@2.31.1": "2.31.1_@types+node@26.2.0",
+    "npm:@types/node@26.2.0": "26.2.0",
     "npm:typescript@7.0.2": "7.0.2"
   },
   "npm": {
@@ -44,7 +44,7 @@
         "@changesets/types@6.1.0"
       ]
     },
-    "@changesets/cli@2.31.1_@types+node@26.1.2": {
+    "@changesets/cli@2.31.1_@types+node@26.2.0": {
       "integrity": "sha512-uO05WTcRBwuVOJVSW8Cmpqw6q0WDL53ajGCMyszutvOe5toOnunbpM4jZzf+qxBOz7i0AzopZ8diBuewjmF40w==",
       "dependencies": [
         "@changesets/apply-release-plan",
@@ -184,15 +184,15 @@
         "prettier"
       ]
     },
-    "@inquirer/external-editor@1.0.3_@types+node@26.1.2": {
+    "@inquirer/external-editor@1.0.3_@types+node@26.2.0": {
       "integrity": "sha512-RWbSrDiYmO4LbejWY7ttpxczuwQyZLBUyygsA9Nsv95hpzUWwnNTVQmAq3xuh7vNwCp07UTmE5i11XAEExx4RA==",
       "dependencies": [
-        "@types/node@26.1.2",
+        "@types/node@26.2.0",
         "chardet",
         "iconv-lite"
       ],
       "optionalPeers": [
-        "@types/node@26.1.2"
+        "@types/node@26.2.0"
       ]
     },
     "@manypkg/find-root@1.1.0": {
@@ -235,8 +235,8 @@
     "@types/node@12.20.55": {
       "integrity": "sha512-J8xLz7q2OFulZ2cyGTLE1TbbZcjpno7FaN6zdJNrgAdrJ+DZzh/uFR6YrTb4C+nXakvud8Q4+rbhoIWlYQbUFQ=="
     },
-    "@types/node@26.1.2": {
-      "integrity": "sha512-Vu4a5UFA9rIIFJ7rB/Vaafh9lrCQszopTCx6KjFboXTGQbPNasehVR5TEiithSDGyd1DEiUByggTZsg8jukeIg==",
+    "@types/node@26.2.0": {
+      "integrity": "sha512-5IviulTZeRNp2vAJ514cc/HUlY5nZ9fCbq9DMyC52BrhFZACo3nI0R7qBxhQmo/d27NFe96ur/b7Wwxklda+kg==",
       "dependencies": [
         "undici-types"
       ]
@@ -726,7 +726,7 @@
     "packageJson": {
       "dependencies": [
         "npm:@changesets/cli@2.31.1",
-        "npm:@types/node@^26.1.2",
+        "npm:@types/node@26.2.0",
         "npm:typescript@7.0.2"
       ]
     }
