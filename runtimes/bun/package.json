@@ -7,6 +7,9 @@
     ".": "./src/index.ts"
   },
   "types": "./src/index.ts",
+  "bin": {
+    "litevolve": "./src/run_litevolve.ts"
+  },
   "files": [
     "src",
     "!src/**/*.test.ts"

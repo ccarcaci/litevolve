@@ -42,8 +42,6 @@ adapter (`src/index.ts`, `src/*_adapter.ts`) differs per runtime.
 
 Not distributed yet, despite the sections below describing them:
 
-- **the CLI** — no package declares a `bin`, so `bunx litevolve` / `npx litevolve` do not work.
-  The CLI runs from a clone, or as a compiled binary you build yourself (`make ci_binary`)
 - **standalone binaries** — built and smoke-tested in CI, not attached to releases
 - **the docker image** — `scripts/Dockerfile` exists but no image is published
 
@@ -101,16 +99,19 @@ litevolve \
   --init_seeds
 ```
 
-**No package ships a `bin` yet**, so this is reachable in two ways only. From a clone:
+Each package declares a `litevolve` bin, so it runs via `bunx` / `npx` without installing anything:
+
+```sh
+bunx litevolve-bun --apply_version=2 --db_path=./data/birds.db --migrations_path=./migrations
+npx litevolve-node --apply_version=2 --db_path=./data/birds.db --migrations_path=./migrations
+```
+
+From a clone, or as a binary you compile yourself:
 
 ```sh
 bun run runtimes/bun/src/run_litevolve.ts \
   --apply_version=2 --db_path=./data/birds.db --migrations_path=./migrations
-```
 
-or as a binary you compile yourself:
-
-```sh
 make ci_binary TARGET=bun-darwin-arm64   # -> dist/litevolve
 dist/litevolve --apply_version=2 --db_path=./data/birds.db --migrations_path=./migrations
 ```
