@@ -9,10 +9,7 @@
     }
   },
   "types": "./dist/index.d.ts",
-  "files": [
-    "dist",
-    "src"
-  ],
+  "files": ["dist"],
   "engines": {
     "deno": ">=2.9"
   },
