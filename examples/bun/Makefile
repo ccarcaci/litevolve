@@ -4,7 +4,7 @@ PKG := litevolve-bun
 
 .PHONY: run up install check_version migrate down
 
-run: check_version up install migrate down
+run: check_version up install migrate run_bin down
 
 # ponytail: host-side, no container needed — the pin in package.json is what we compare
 check_version:
@@ -25,6 +25,13 @@ install:
 
 migrate:
 	docker exec $(CONTAINER) bun index.ts
+
+run_bin:
+	docker exec $(CONTAINER) bunx litevolve-bun \
+		--apply_version=3 \
+		--db_path=:memory: \
+		--migrations_path=/app/migrations/working \
+		--init_seeds
 
 down:
 	-docker rm -f $(CONTAINER)

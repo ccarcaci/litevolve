@@ -4,7 +4,7 @@ PKG := litevolve-node
 
 .PHONY: run up install check_version typecheck migrate down
 
-run: check_version up install typecheck migrate down
+run: check_version up install typecheck migrate run_bin down
 
 # ponytail: host-side, no container needed — the pin in package.json is what we compare
 check_version:
@@ -28,6 +28,13 @@ typecheck:
 
 migrate:
 	docker exec $(CONTAINER) node index.ts
+
+run_bin:
+	docker exec $(CONTAINER) npx --yes litevolve-node \
+		--apply_version=3 \
+		--db_path=:memory: \
+		--migrations_path=/app/migrations/working \
+		--init_seeds
 
 down:
 	-docker rm -f $(CONTAINER)
