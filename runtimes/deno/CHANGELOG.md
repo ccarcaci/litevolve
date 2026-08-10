@@ -1,5 +1,13 @@
 # litevolve-deno
 
+## 0.0.5
+
+### Patch Changes
+
+- Move `@types/node` out of `dependencies` into `devDependencies`, pinned to an exact version (`26.2.0`) instead of a `^` range. It was published as a runtime dependency, so every consumer of `litevolve-deno` also installed `@types/node` even though nothing in the published `dist`/`src` needs it at runtime.
+
+  Also sync the README: the Bun and Deno version badges now show `>=` floors instead of exact pins, the `scripts/` layout note mentions the local-only `check_bun_version.sh`, and `contributing_guidelines` documents the Renovate `.deno-version` exception and the `engines`-is-a-floor policy.
+
 ## 0.0.4
 
 ### Patch Changes

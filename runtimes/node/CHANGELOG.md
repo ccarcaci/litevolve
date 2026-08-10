@@ -1,5 +1,11 @@
 # litevolve-node
 
+## 0.0.5
+
+### Patch Changes
+
+- Update the `Makefile`'s `shell` target to a floating `node:slim` image instead of the pinned `node:$(NODE_VERSION)-alpine`, and expand the README with the local-only `check_version` step, the `.deno-version` update-check exception, and the `engines`-is-a-floor policy.
+
 ## 0.0.4
 
 ### Patch Changes

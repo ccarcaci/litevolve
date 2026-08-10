@@ -1,5 +1,11 @@
 # litevolve-bun
 
+## 0.0.5
+
+### Patch Changes
+
+- Loosen the published `engines.bun` floor from an exact pin (`1.3.14`) to `>=1.3`, so consumers on any 1.3.x (or later) Bun aren't blocked by a version they don't have. Also pin the `@types/bun` devDependency to an exact version instead of `^1.3.14`, and update the README's Bun/Deno badges and docs to match: badges now show `>=` floors instead of exact pins, the `scripts/` layout note mentions the local-only `check_bun_version.sh`, and `contributing_guidelines` documents `make check_version`, the `.deno-version` Renovate exception, and the `engines`-is-a-floor policy.
+
 ## 0.0.4
 
 ### Patch Changes
