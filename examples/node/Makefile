@@ -1,4 +1,4 @@
-IMAGE ?= node:22-slim
+IMAGE ?= node:slim
 CONTAINER ?= litevolve_example_node
 PKG := litevolve-node
 

@@ -7,5 +7,5 @@ shell:
 	docker run --rm -it \
 		--volume $(REPO_ROOT):/workspace \
 		--workdir /workspace \
-		node:$(NODE_VERSION)-alpine \
+		node:slim \
 		/bin/sh
