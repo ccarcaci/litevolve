@@ -1,6 +1,6 @@
 {
   "name": "litevolve-node",
-  "version": "0.0.5",
+  "version": "0.1.0",
   "description": "Versioned SQLite migration runner for Node.js (node:sqlite) — library.",
   "type": "module",
   "engines": {

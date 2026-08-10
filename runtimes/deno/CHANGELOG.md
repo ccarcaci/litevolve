@@ -1,5 +1,11 @@
 # litevolve-deno
 
+## 0.1.0
+
+### Minor Changes
+
+- Declare a `litevolve` `bin` entry point (`./dist/run_litevolve.js`, now with a `#!/usr/bin/env node` shebang) and drop `src` from the published `files` list so only `dist` ships. README documents `npx litevolve-deno ...` alongside the `bunx`/`npx` examples for the other two packages; the existing "on hold, do not use" warning for `litevolve-deno` is unchanged.
+
 ## 0.0.5
 
 ### Patch Changes
