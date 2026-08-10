@@ -35,10 +35,8 @@
     "database",
     "deno"
   ],
-  "dependencies": {
-    "@types/node": "^26.1.2"
-  },
   "devDependencies": {
+    "@types/node": "26.2.0"
     "@changesets/cli": "2.31.1",
     "typescript": "7.0.2"
   }
