@@ -41,11 +41,9 @@ jobs:
         uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2
         with:
           bun-version-file: ".bun-version"
-      - name: install dependencies
-        run: bun install
+      - name: install dependencies (check lockfile)
+        run: bun ci
         working-directory: runtimes/bun
-      - name: check bun version
-        run: scripts/ci_check_bun_version.sh
       - name: check dependency updates
         run: scripts/ci_check_updates_bun.sh
       - name: build
@@ -70,11 +68,9 @@ jobs:
           node-version-file: ".node-version"
       - name: install esbuild
         run: npm install --global esbuild
-      - name: install dependencies
-        run: npm install
+      - name: install dependencies (check lockfile)
+        run: npm ci
         working-directory: runtimes/node
-      - name: check node version
-        run: scripts/ci_check_node_version.sh
       - name: check dependency updates
         run: scripts/ci_check_updates_node.sh
       - name: build
@@ -98,11 +94,9 @@ jobs:
         uses: denoland/setup-deno@22d081ff2d3a40755e97629de92e3bcbfa7cf2ed # v2.0.5
         with:
           deno-version-file: ".deno-version"
-      - name: install dependencies
-        run: deno install
+      - name: install dependencies (check lockfile)
+        run: deno ci
         working-directory: runtimes/deno
-      - name: check deno version
-        run: scripts/ci_check_deno_version.sh
       - name: check dependency updates
         run: scripts/ci_check_updates_deno.sh
       - name: build

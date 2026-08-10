@@ -9,9 +9,9 @@ Versioned SQLite migrations for Bun, Node, and Deno — usable as a library or a
 [![litevolve-node](https://img.shields.io/npm/v/litevolve-node?logo=node.js&logoColor=white&label=litevolve-node&color=339933)](https://www.npmjs.com/package/litevolve-node)
 [![litevolve-deno](https://img.shields.io/npm/v/litevolve-deno?logo=deno&logoColor=white&label=litevolve-deno&color=black)](https://www.npmjs.com/package/litevolve-deno)
 
-[![Bun](https://img.shields.io/badge/Bun-1.3.14-black?logo=bun)](https://bun.sh)
+[![Bun](https://img.shields.io/badge/Bun-%3E%3D1.3-black?logo=bun)](https://bun.sh)
 [![Node](https://img.shields.io/badge/Node-%3E%3D22.5-339933?logo=node.js&logoColor=white)](https://nodejs.org)
-[![Deno](https://img.shields.io/badge/Deno-2.9-000?logo=deno)](https://deno.land)
+[![Deno](https://img.shields.io/badge/Deno-%3E%3D2.9-000?logo=deno)](https://deno.land)
 
 <!-- [![Homebrew installs](https://img.shields.io/homebrew/installs/dm/litevolve.svg)](https://formulae.brew.sh/formula/litevolve) -->
 
@@ -233,6 +233,7 @@ runtimes/node/    litevolve-node  — generated src/core, plus the node:sqlite a
 runtimes/deno/    litevolve-deno  — generated src/core, adapter unfinished
 migrations/       working/ example database, broken/ fixture used by the test suite
 scripts/          every CI step, as plain shell — the Makefile only calls into these
+                  (plus check_bun_version.sh, which is local-only)
 ```
 
 ## release_process
@@ -258,13 +259,20 @@ tag against `package.json`, then builds, tests, packs and publishes that one pac
 ## contributing_guidelines
 
 Refer to [Makefile](./Makefile) for a comprehensive list of available helping commands.
-`make ci_checks` runs the same checks CI does.
+`make ci_checks` runs everything CI does, plus `make check_version` — which checks your
+installed Bun against `.bun-version` and has no CI equivalent, since CI installs Bun *from*
+that file.
 
 - OSX is recommended for development
   - if you have any experience contributing to this library under Linux please share your setup
 - `litevolve` basic ecosystem is Bun
 - a fix to `src/core` goes into `runtimes/bun` and reaches the others through `make align_artifacts`
   — editing a generated copy directly will fail `make ci_check_align`
+- dependency and toolchain versions are Renovate's job. `.deno-version` is the one pin no
+  Renovate manager matches, so `make ci_check_updates` checks it against the latest Deno
+  release — don't re-add checks for anything Renovate already covers
+- the `engines` field is a **floor**: the oldest runtime the package supports, not the version
+  we build with. It is raised by hand, only when a breaking change raises the real minimum
 - Makefile approach is opinionated (sorry)
 - Use any editor but don't push any related configuration of it, keep it in your machine
   - I currently use [Helix editor](https://helix-editor.com/)

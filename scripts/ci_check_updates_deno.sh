@@ -1,18 +1,27 @@
 #!/bin/bash
 
-# Check for outdated dependencies in runtimes/deno
-# Fails if any packages have available updates
-# Usage: ./scripts/check_updates_deno.sh
+# Check .deno-version against the latest Deno release.
+# Renovate has no manager matching .deno-version, so this check is the only thing
+# keeping that pin current. Everything else in runtimes/deno (package.json,
+# deno.json, deno.lock) is covered by Renovate's npm + deno managers.
+# Usage: ./scripts/ci_check_updates_deno.sh
 
-set -e
+set -euo pipefail
 
-OUTDATED=$(npm outdated --prefix runtimes/deno 2>&1) || true
+PINNED=$(tr -d '[:space:]' < .deno-version)
 
-if [ -n "$OUTDATED" ]; then
-  echo "$OUTDATED"
-  echo ""
-  echo "ERROR: outdated dependencies in runtimes/deno — update package.json and run bun install"
+# same endpoint the official installer resolves "latest" with (https://deno.land/install.sh)
+LATEST=$(curl -sf https://dl.deno.land/release-latest.txt | tr -d '[:space:]' | sed 's/^v//' || true)
+
+if [ -z "$LATEST" ]; then
+  echo "WARNING: could not fetch the latest Deno release from dl.deno.land"
+  exit 0
+fi
+
+if [ "$PINNED" != "$LATEST" ]; then
+  echo "ERROR: .deno-version pins $PINNED but $LATEST is the latest Deno release"
+  echo "Update: echo $LATEST > .deno-version"
   exit 1
 fi
 
-echo "runtimes/deno: all dependencies up to date"
+echo ".deno-version OK: $PINNED (latest)"

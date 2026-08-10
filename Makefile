@@ -159,18 +159,20 @@ format: ## fix formatting, linting (safe fixes), and import sorting with biome
 
 ##@ CI checks
 
-.PHONY: ci_check_version
-ci_check_version: ## check that installed bun version matches .bun_version
+.PHONY: check_version
+check_version: ## check that installed bun version matches .bun_version
 	@echo "checking bun version..."
-	@$(SCRIPTS_DIR)/ci_check_bun_version.sh
+	@$(SCRIPTS_DIR)/check_bun_version.sh
 
 .PHONY: ci_check_align
 ci_check_align: ## check that node/core/src and deno/core/src are aligned with bun/core/src
 	@$(SCRIPTS_DIR)/ci_check_align.sh
 
 .PHONY: ci_check_updates
-ci_check_updates: ## check GitHub for newer versions of bun, dockerfile base image, and npm packages (warning only)
+ci_check_updates: ## check the version pins Renovate does not cover (currently .deno-version)
 	@$(SCRIPTS_DIR)/ci_check_updates_bun.sh
+	@$(SCRIPTS_DIR)/ci_check_updates_node.sh
+	@$(SCRIPTS_DIR)/ci_check_updates_deno.sh
 
 .PHONY: ci_check_lint
 ci_check_lint: ## run biome linter on runtimes/
@@ -190,7 +192,7 @@ ci_test: ## run core + bun adapter tests with bun
 	@$(SCRIPTS_DIR)/ci_test.sh bun
 
 .PHONY: ci_checks
-ci_checks: ci_check_version ci_check_align ci_check_updates ci_check_lint ci_check_build ci_sec ci_test ## run all CI checks in order
+ci_checks: check_version ci_check_align ci_check_updates ci_check_lint ci_check_build ci_sec ci_test ## run all CI checks in order
 	@echo "all CI checks passed!"
 
 ##@ CI gen

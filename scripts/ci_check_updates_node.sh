@@ -1,18 +1,12 @@
 #!/bin/bash
 
-# Check for outdated dependencies in packages/node
-# Fails if any packages have available updates
-# Usage: ./scripts/check_updates_node.sh
+# Update checks for the node runtime.
+#
+# Nothing left to check: every pin this script used to poll is covered by Renovate.
+#   .node-version          -> nodenv manager
+#   runtimes/node/*.json   -> npm manager
+# Usage: ./scripts/ci_check_updates_node.sh
 
-set -e
+set -euo pipefail
 
-OUTDATED=$(npm outdated --prefix runtimes/node 2>&1) || true
-
-if [ -n "$OUTDATED" ]; then
-  echo "$OUTDATED"
-  echo ""
-  echo "ERROR: outdated dependencies in runtimes/node — update package.json and run bun install"
-  exit 1
-fi
-
-echo "runtimes/node: all dependencies up to date"
+echo "runtimes/node: no update checks beyond Renovate"

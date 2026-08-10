@@ -56,11 +56,13 @@ Leading-zero padding optional; version 0 is invalid.
 
 | Target                                       | Purpose                                        |
 | -------------------------------------------- | ---------------------------------------------- |
-| `make ci_checks`                             | Everything CI runs, in order                   |
+| `make ci_checks`                             | Everything CI runs, plus `check_version`       |
 | `make test [name]`                           | Bun tests, optionally filtered by name         |
 | `make test_debug [name]`                     | Same, with `--inspect-wait`                    |
 | `make ci_test`                               | Tests as CI runs them (isolated, parallel)     |
+| `make check_version`                         | Installed bun vs `.bun-version` — local only   |
 | `make ci_check_align`                        | Verify the core copies match                   |
+| `make ci_check_updates`                      | Version pins Renovate does not cover           |
 | `make ci_check_lint` / `make format`         | Biome check / auto-fix                         |
 | `make ci_check_build`                        | Bundle check + `tsc --noEmit`                  |
 | `make ci_sec`                                | `bun audit`                                    |
@@ -69,9 +71,10 @@ Leading-zero padding optional; version 0 is invalid.
 | `make migrate_seeds DB_PATH=<p> VERSION=<n>` | Fresh DB with seeds                            |
 | `make ci_binary TARGET=bun-darwin-arm64`     | Compile a standalone binary                    |
 
-The `scripts/ci_*.sh` scripts take a runtime argument (`bun`, `node`, `deno`); the root
-Makefile only wires up the bun ones. Deno CI is currently disabled (`if: false` in
-`.github/workflows/ci.yml`), so deno changes are unverified by CI.
+`ci_build.sh`, `ci_types.sh`, `ci_sec.sh` and `ci_test.sh` take a runtime argument (`bun`,
+`node`, `deno`) and the root Makefile only wires up the bun ones; `ci_check_updates_*.sh` are
+one file per runtime and all three run from `make ci_check_updates`. Deno CI is currently
+disabled (`if: false` in `.github/workflows/ci.yml`), so deno changes are unverified by CI.
 
 Tooling: Bun for dev, install, test, and binary compilation. Biome for lint/format, config at
 `runtimes/bun/biome.json`. The node package is bundled with **esbuild** (`scripts/ci_build.sh`),
@@ -79,6 +82,32 @@ not `bun build`.
 
 ## Dependency pins
 
-`DEPENDENCY_PINS.md` inventories every hardcoded third-party version and which ones Renovate
-does not cover. Consult it before bumping a runtime version — several pins are duplicated
-across `.bun-version`, `engines`, Dockerfiles, example Makefiles, and README badges.
+Renovate owns almost everything: `.bun-version` (`bun-version` manager), `.node-version`
+(`nodenv`), every `package.json` and `deno.json` (`npm` + `deno`), `scripts/Dockerfile`
+(`dockerfile`), and both workflows (`github-actions`, SHA-pinned). Do not add a script that
+re-checks any of those — that duplication was removed on purpose.
+
+`.deno-version` is the exception: no Renovate manager matches it, so
+`scripts/ci_check_updates_deno.sh` fails when it is not the latest Deno release (resolved from
+`https://dl.deno.land/release-latest.txt`, the endpoint the official installer uses). It runs
+from `make ci_check_updates` — and only there in practice, since the deno CI job is disabled.
+
+### `engines` are floors, on purpose
+
+`engines` in the three published runtimes is the **minimum runtime a consumer needs**, not the
+toolchain this repo builds with. It is deliberately *not* tied to `.bun-version` /
+`.node-version` / `.deno-version`, which track latest. Bumping a floor drops support for
+released consumers, so it happens by hand, only when a breaking change actually raises the
+minimum — never automatically.
+
+Do not add a check or a Renovate rule that syncs `engines` to a version file. Renovate could
+not do it anyway: its npm manager extracts only `node`, `yarn`, `npm`, `pnpm` and `vscode` from
+`engines` and marks anything else `unknown-engines`, so `engines.bun` and `engines.deno` are
+invisible to it, and Renovate has no way to express "field A equals file B" (`postUpgradeTasks`
+could, but it is self-hosted-only).
+
+### Still checked by nothing
+
+Verify by hand when bumping a runtime: the `IMAGE ?=` pins in the four example/runtime
+Makefiles, the `$schema` URLs in `biome.json` and `.changeset/config.json`, the README version
+badges, and the unpinned global `npm install --global esbuild` in both workflows.
