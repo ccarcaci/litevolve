@@ -48,7 +48,7 @@ because the same file has to run on all three runtimes.
 - Each step runs in `BEGIN IMMEDIATE` — a failed seed rolls back its schema change.
 - Statements split on `;` *before* comment stripping — never put `;` inside a SQL comment.
 
-Filename format: `0*[1-9][0-9]*_([a-zA-Z_]+)\.(sql|seed\.sql|down\.sql)`
+Filename format: `0*[1-9][0-9]*_([a-zA-Z0-9_]+)\.(sql|seed\.sql|down\.sql)`
 e.g. `0001_create_initial_schema.sql`, `0042_add_users.down.sql`, `01000_split_log.seed.sql`.
 Leading-zero padding optional; version 0 is invalid.
 
