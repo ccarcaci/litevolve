@@ -11,6 +11,7 @@ const MIGRATIONS_ROOT = resolve(import.meta.dir, "../../../migrations")
 const MIGRATIONS_PATH = resolve(MIGRATIONS_ROOT, "working")
 const BROKEN_MIGRATIONS_PATH = resolve(MIGRATIONS_ROOT, "broken")
 const INVALID_FILENAME_MIGRATIONS_PATH = resolve(MIGRATIONS_ROOT, "invalid_filename")
+const TRIGGER_MIGRATIONS_PATH = resolve(MIGRATIONS_ROOT, "trigger")
 
 const SITE_ID = "48740B1B-0AA2-48DD-9EEE-C14B6AC3258C" // Central Park Bird Sanctuary
 const ALICE_ID = "D5F7BA6A-19C2-42F3-8080-17F098BB807D" // Alice Johnson
@@ -218,18 +219,18 @@ describe("migrate_db_file_based_database", () => {
   })
 
   test("omitted_apply_version_migrates_up_to_latest_available_version", () => {
-    //  --  act: no apply_version given, working migrations top out at v3
+    //  --  act: no apply_version given, working migrations top out at v4
     migrate_db(MIGRATIONS_PATH, db_path, false)
 
     //  --  assert
     const db = new Database(db_path)
-    expect(db_user_version(db)).toBe(3)
+    expect(db_user_version(db)).toBe(4)
     db.close()
 
     //  --  act: already at latest, calling again with omitted apply_version is a no-op
     expect(() => migrate_db(MIGRATIONS_PATH, db_path, false)).not.toThrow()
     const db2 = new Database(db_path)
-    expect(db_user_version(db2)).toBe(3)
+    expect(db_user_version(db2)).toBe(4)
     db2.close()
   })
 
@@ -298,12 +299,37 @@ describe("migrate_db_file_based_database", () => {
     db.close()
   })
 
+  test("create_trigger_with_inner_update_where_survives_statement_splitting", () => {
+    //  --  arrange: up migration creates a table + an AFTER UPDATE trigger whose
+    //  body contains a `;` before its closing END
+    migrate_db(TRIGGER_MIGRATIONS_PATH, db_path, false, 1)
+    const db = new Database(db_path)
+    expect(table_names(db)).toEqual(["widgets"])
+    db.query("INSERT INTO widgets (id, name) VALUES ('w1', 'first')").run()
+
+    //  --  act: update a column other than updated_at — the trigger should fire
+    db.query("UPDATE widgets SET name = 'second' WHERE id = 'w1'").run()
+
+    //  --  assert: trigger's inner UPDATE ... WHERE ran, updated_at is no longer the default
+    const widget = db.query("SELECT updated_at FROM widgets WHERE id = 'w1'").get() as {
+      updated_at: string
+    } | null
+    expect(widget?.updated_at).not.toBe("")
+    db.close()
+
+    //  --  act: down migration drops the trigger and table cleanly
+    migrate_db(TRIGGER_MIGRATIONS_PATH, db_path, false, 0)
+    const db2 = new Database(db_path)
+    expect(table_names(db2)).toEqual([])
+    db2.close()
+  })
+
   test("throws_when_no_up_migration_files_in_range", () => {
     //  --  arrange
-    migrate_db(MIGRATIONS_PATH, db_path, false, 4) // applies up through latest (v3), user_version stays at last applied
+    migrate_db(MIGRATIONS_PATH, db_path, false, 5) // applies up through latest (v4), user_version stays at last applied
 
     //  --  act + assert
-    expect(() => migrate_db(MIGRATIONS_PATH, db_path, false, 5)).toThrow()
+    expect(() => migrate_db(MIGRATIONS_PATH, db_path, false, 6)).toThrow()
   })
 
   // init_seeds behavior: the flag is only evaluated at version 0; subsequent calls use the stored value

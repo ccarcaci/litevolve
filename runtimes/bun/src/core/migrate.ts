@@ -13,12 +13,12 @@ const read_current_version = (db: db_adapter): number =>
 
 const EXTENSION_REGEX = /(sql|seed\.sql|down\.sql)$/
 // Enforced filename format:
-//   0*[1-9][0-9]*_([a-z]|[A-Z]|_)+.(sql|seed.sql|down.sql)
+//   0*[1-9][0-9]*_([a-z]|[A-Z]|[0-9]|_)+.(sql|seed.sql|down.sql)
 // Optional leading zeros for zero-padding, followed by a non-zero leading digit and
-// any digits, an underscore, a [a-zA-Z_]+ description, and one of three extensions.
+// any digits, an underscore, a [a-zA-Z0-9_]+ description, and one of three extensions.
 // Sort order strips leading zeros via parseInt, so 0999 sorts before 01000, and an
 // unpadded 42 sorts identically to 0042.
-const FILENAME_REGEX = /^(0*[1-9][0-9]*)_[a-zA-Z_]+\.(sql|seed\.sql|down\.sql)$/
+const FILENAME_REGEX = /^(0*[1-9][0-9]*)_[a-zA-Z0-9_]+\.(sql|seed\.sql|down\.sql)$/
 
 const read_migration_files = (
   direction: "up" | "down",
@@ -64,15 +64,35 @@ const find_seed_path = (file_path: string): string | null => {
 // vanish. That would let a broken migration COMMIT and advance user_version.
 // Running each statement on its own makes every failure throw, so apply_migration
 // rolls back.
-// ponytail: naive splitter — strips `-- line comments`, then splits on `;`. Does
-// not handle `;`/`--` inside string literals or triggers (BEGIN..END). Fine for
-// the simple DDL/DML migration format; revisit if migrations ever need those.
+// ponytail: naive splitter — strips `-- line comments`, then splits on `;`, only
+// holding off inside a BEGIN..END block (so CREATE TRIGGER bodies survive intact).
+// Does not handle `;`/BEGIN/END inside string literals, or a CASE..END expression
+// inside a trigger body (its END would be miscounted as closing the block). Fine
+// for the simple DDL/DML/trigger migration format; revisit if migrations ever need those.
+const split_sql_statements = (sql: string): string[] => {
+  const statements: string[] = []
+  let current = ""
+  let begin_depth = 0
+  for (const token of sql.split(/(\bBEGIN\b|\bEND\b|;)/i)) {
+    if (/^begin$/i.test(token)) {
+      begin_depth++
+      current += token
+    } else if (/^end$/i.test(token)) {
+      begin_depth = Math.max(0, begin_depth - 1)
+      current += token
+    } else if (token === ";" && begin_depth === 0) {
+      statements.push(current)
+      current = ""
+    } else {
+      current += token
+    }
+  }
+  statements.push(current)
+  return statements.map((s) => s.trim()).filter((s) => s.length > 0)
+}
+
 const run_sql_statements = (db: db_adapter, sql: string): void => {
-  const statements = sql
-    .replace(/--[^\n]*/g, "")
-    .split(";")
-    .map((s) => s.trim())
-    .filter((s) => s.length > 0)
+  const statements = split_sql_statements(sql.replace(/--[^\n]*/g, ""))
   for (const statement of statements) {
     db.run(statement)
   }
