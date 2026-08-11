@@ -43,6 +43,11 @@ const read_migration_files = (
       return [{ version, file_path: resolve(migrations_path, f) }]
     })
 
+// Highest version among "up" migration files — the implicit target when --apply_version
+// is omitted. 0 if the directory has no up migrations.
+const read_latest_version = (migrations_path: string): number =>
+  read_migration_files("up", migrations_path).reduce((max, m) => Math.max(max, m.version), 0)
+
 // Derives the optional seed file path from an up migration file path.
 // Example: 0042_add_users_language_column.sql → 0042_add_users_language_column.seed.sql
 // Returns null if the seed file does not exist.
@@ -190,18 +195,19 @@ const migrate_down = (
 //  --
 
 export const migrate_with_adapter = (
-  apply_version: number,
   migrations_path: string,
   db: db_adapter,
   init_seeds = false,
+  apply_version?: number,
 ): void => {
   ensure_meta_table(db)
   const current_version = read_current_version(db)
+  const target_version = apply_version ?? read_latest_version(migrations_path)
   console.log(
-    `current user_version=${current_version}  target=${apply_version}  init_seeds=${init_seeds}`,
+    `current user_version=${current_version}  target=${target_version}  init_seeds=${init_seeds}`,
   )
 
-  if (current_version === apply_version) {
+  if (current_version === target_version) {
     console.log("already at target version, nothing to do")
     return
   }
@@ -211,11 +217,11 @@ export const migrate_with_adapter = (
   // so a seed decision made at DB creation stays consistent across all subsequent upgrades.
   if (current_version === 0) write_init_seeds(db, init_seeds)
 
-  if (apply_version > current_version) {
-    migrate_up(current_version, apply_version, migrations_path, db)
+  if (target_version > current_version) {
+    migrate_up(current_version, target_version, migrations_path, db)
   } else {
-    migrate_down(current_version, apply_version, migrations_path, db)
+    migrate_down(current_version, target_version, migrations_path, db)
   }
 
-  console.log(`migration complete: user_version=${apply_version}`)
+  console.log(`migration complete: user_version=${target_version}`)
 }

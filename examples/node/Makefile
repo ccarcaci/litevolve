@@ -35,6 +35,10 @@ run_bin:
 		--db_path=:memory: \
 		--migrations_path=/app/migrations/working \
 		--init_seeds
+	docker exec $(CONTAINER) npx --yes litevolve-node \
+		--db_path=:memory: \
+		--migrations_path=/app/migrations/working \
+		--init_seeds
 
 down:
 	-docker rm -f $(CONTAINER)
