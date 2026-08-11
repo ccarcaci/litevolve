@@ -1,5 +1,11 @@
 # litevolve-bun
 
+## 0.2.1
+
+### Patch Changes
+
+- fix(migrate): allow digits in migration filenames and preserve trigger bodies when splitting SQL statements
+
 ## 0.2.0
 
 ### Minor Changes

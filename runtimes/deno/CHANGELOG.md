@@ -1,5 +1,30 @@
 # litevolve-deno
 
+## 0.2.1
+
+### Patch Changes
+
+- - fix(migrate): allow digits in migration filenames and preserve trigger bodies when splitting SQL statements
+  - fix(cli): default apply_version to latest and fix migrate_db argument order
+  - chore(release): bump bun, node, and deno packages to 0.2.0 with apply_version changelog entries
+  - refactor(migrate): make apply_version optional, default to latest available migration
+  - chore(release): bump bun, node, and deno packages to 0.1.0 with bin entry point changelogs
+  - docs: document CLI bin entry points and add npx/bunx smoke tests
+  - ci: drop redundant bun build step from publish and prune deno package files
+  - renovate/ Update dependency @types/node to v26.2.0
+  - chore(release): version bun, deno, and node packages to 0.0.5
+  - chore(deps): pin exact devDependency versions and move deno's @types/node to devDependencies
+  - ci(deno): re-enable deno CI job and rename deno.json to package.json
+  - chore(ci): switch to lockfile-only installs and let Renovate own version pins
+  - chore(release): bump runtime packages to 0.0.4
+  - fix(migrate): skip non-migration files when reading migrations directory
+  - `chore(release): bump runtime packages to 0.0.3`
+  - build(deno): build with `deno compile`, add deno.lock, and use alpine shell image
+  - fix(deno): use node:sqlite via node adapter instead of bun:sqlite and drop better-sqlite3 adapter
+  - chore: correct core module paths, tsconfig types, and bun packaging; drop stale deno and local CI files
+  - docs(readme): rewrite runtime READMEs for per-package npm publishing and current release process
+  - chore(release): split publish into tag-driven per-package workflow with deno support
+
 ## 0.2.0
 
 ### Minor Changes
