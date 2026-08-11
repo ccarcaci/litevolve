@@ -1,5 +1,13 @@
 # litevolve-node
 
+## 0.2.0
+
+### Minor Changes
+
+- `migrate_db` and `migrate_with_adapter` now take `apply_version` as an optional trailing argument instead of a required first argument, defaulting to the highest-numbered migration file in `migrations_path` when omitted. The CLI's `--apply_version` flag is likewise now optional. README updated for both the library and CLI usage sections.
+
+  Basis: `litevolve-node@0.1.0..HEAD` touches only `src/core/migrate.ts`, `src/index.ts` and `README.md`, all from commit `9d20e44`. Both exported functions changed parameter order and made `apply_version` optional, which breaks existing call sites — bumped as `minor` per this project's 0.x convention (breaking changes bump minor, non-breaking fixes bump patch; matches the 0.0.5→0.1.0 precedent).
+
 ## 0.1.0
 
 ### Minor Changes

@@ -1,5 +1,15 @@
 # litevolve-deno
 
+## 0.2.0
+
+### Minor Changes
+
+- `migrate_db` and `migrate_with_adapter` now take `apply_version` as an optional trailing argument instead of a required leading one, defaulting to the highest-numbered "up" migration file in `migrations_path` when omitted (`read_latest_version`, new in `core/migrate.ts`). The CLI's `--apply_version` flag is likewise now optional — omit it to migrate up to the latest available migration. README updated for both the library snippet and the CLI usage section.
+
+  Basis: `litevolve-deno@0.0.1` is stale (deno CI, and therefore its tag/publish step, is disabled — see CLAUDE.md — so it never advanced past 0.0.1 even though `package.json`/`CHANGELOG.md` are already at 0.1.0). Diffing from the literal tag would re-bundle the already-released 0.0.3, 0.0.4, 0.0.5, and 0.1.0 changesets into this one. Used `9756702` instead — the commit `litevolve-bun@0.1.0` and `litevolve-node@0.1.0` both point to, i.e. deno's true last-released state — which isolates exactly one commit in range (`9d20e44`), touching `src/core/migrate.ts`, `src/index.ts`, `src/run_litevolve.ts`, and `README.md`.
+
+  `minor`: reordering `migrate_db`'s parameters (`apply_version` moved from 1st to last) breaks any existing positional call site — a breaking change bumped as `minor` per this project's 0.x convention, consistent with the 0.0.5→0.1.0 precedent.
+
 ## 0.1.0
 
 ### Minor Changes
