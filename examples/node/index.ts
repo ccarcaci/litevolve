@@ -11,7 +11,7 @@ const latest_version = 3
 rmSync(db_path, { force: true })
 
 // db is typed as node:sqlite's DatabaseSync via litevolve-node/dist/index.d.ts
-const db = migrate_db(latest_version, migrations_path, db_path, true)
+const db = migrate_db(migrations_path, db_path, true, latest_version)
 
 const row = db.prepare("PRAGMA user_version").get() as { user_version: number } | undefined
 if (row?.user_version !== latest_version) {

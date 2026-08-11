@@ -15,7 +15,7 @@ check_version:
 
 # ponytail: denoland/deno's entrypoint is `deno`, so override it to keep the container alive
 up: down
-	docker run -d --name $(CONTAINER) --entrypoint sleep \
+	docker run --detach --rm --name $(CONTAINER) --entrypoint sleep \
 		-v $(CURDIR):/app/examples/deno \
 		-v $(CURDIR)/../../migrations:/app/migrations:ro \
 		-w /app/examples/deno \
@@ -39,4 +39,5 @@ run_bin:
 		--init_seeds
 
 down:
-	-docker rm -f $(CONTAINER)
+	-docker stop $(CONTAINER)
+	-docker rm --force $(CONTAINER)
