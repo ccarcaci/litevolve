@@ -7,4 +7,5 @@ shell:
 	docker run --rm -it \
 		--volume $(REPO_ROOT):/workspace \
 		--workdir /workspace \
-		alpine:edge # then apk add deno
+		denoland/deno:alpine \
+		sh
