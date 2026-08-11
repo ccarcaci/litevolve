@@ -1,6 +1,6 @@
 {
   "name": "litevolve-deno",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Versioned SQLite migration runner for Deno — library or CLI.",
   "type": "module",
   "exports": {
