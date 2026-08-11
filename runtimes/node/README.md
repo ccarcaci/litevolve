@@ -267,7 +267,7 @@ that file.
 
 - OSX is recommended for development
   - if you have any experience contributing to this library under Linux please share your setup
-- `litevolve` basic ecosystem is Bun
+- `litevolve` basic ecosystem is Bun, so you need Bun installed in your machine, possibly to the [.bun-version](.bun-version) version
 - a fix to `src/core` goes into `runtimes/bun` and reaches the others through `make align_artifacts`
   — editing a generated copy directly will fail `make ci_check_align`
 - dependency and toolchain versions are Renovate's job. `.deno-version` is the one pin no
