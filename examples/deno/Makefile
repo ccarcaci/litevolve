@@ -1,4 +1,4 @@
-IMAGE ?= denoland/deno:2-debian-dev
+IMAGE ?= denoland/deno:alpine
 CONTAINER ?= litevolve_example_deno
 PKG := litevolve-deno
 
