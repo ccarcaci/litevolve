@@ -3,10 +3,10 @@ import { existsSync } from "node:fs"
 import { Database } from "bun:sqlite"
 
 export const migrate_db = (
-  apply_version: number,
   migrations_path: string,
   db_path: string,
-  init_seeds = false,
+  init_seeds: boolean,
+  apply_version?: number,
 ): Database => {
   const db_exists = existsSync(db_path)
   const db = new Database(db_path)
@@ -15,6 +15,6 @@ export const migrate_db = (
   if (!db_exists) {
     console.log(`database created at ${db_path}, user_version initialized to 0`)
   }
-  migrate_with_adapter(apply_version, migrations_path, db, init_seeds)
+  migrate_with_adapter(migrations_path, db, init_seeds, apply_version)
   return db
 }

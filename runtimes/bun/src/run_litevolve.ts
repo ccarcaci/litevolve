@@ -5,9 +5,9 @@ import { migration_error } from "./core"
 
 type migration_configs_type = {
   init_seeds: boolean
-  apply_version: number
   db_path: string
   migrations_path: string
+  apply_version?: number
 }
 
 const parse_cli_args = (): migration_configs_type => {
@@ -34,11 +34,15 @@ const parse_cli_args = (): migration_configs_type => {
     return value
   }
 
+  const apply_version_raw = values.apply_version
+  const apply_version =
+    typeof apply_version_raw === "string" ? parseInt(apply_version_raw, 10) : undefined
+
   const configs: migration_configs_type = {
     init_seeds: (values.init_seeds as boolean | undefined) ?? false,
-    apply_version: parseInt(required("apply_version"), 10),
     db_path: required("db_path"),
     migrations_path: required("migrations_path"),
+    apply_version,
   }
 
   if (missing.length > 0) {
@@ -55,4 +59,4 @@ const parse_cli_args = (): migration_configs_type => {
 //  --
 
 const configs = parse_cli_args()
-migrate_db(configs.apply_version, configs.migrations_path, configs.db_path, configs.init_seeds)
+migrate_db(configs.migrations_path, configs.db_path, configs.init_seeds, configs.apply_version)

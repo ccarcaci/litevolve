@@ -88,7 +88,7 @@ describe("migrate_db_file_based_database", () => {
 
   test("v1_up_creates_all_tables_with_correct_columns_and_user_version_1", () => {
     //  --  act
-    migrate_db(1, MIGRATIONS_PATH, db_path)
+    migrate_db(MIGRATIONS_PATH, db_path, false, 1)
 
     //  --  assert
     const db = new Database(db_path)
@@ -103,7 +103,7 @@ describe("migrate_db_file_based_database", () => {
 
   test("v1_up_with_init_seeds_inserts_all_seed_rows", () => {
     //  --  act
-    migrate_db(1, MIGRATIONS_PATH, db_path, true)
+    migrate_db(MIGRATIONS_PATH, db_path, true, 1)
 
     //  --  assert
     const db = new Database(db_path)
@@ -116,10 +116,10 @@ describe("migrate_db_file_based_database", () => {
 
   test("v1_then_v2_up_expands_schema_and_adds_intake_tables_and_timezone", () => {
     //  --  arrange
-    migrate_db(1, MIGRATIONS_PATH, db_path)
+    migrate_db(MIGRATIONS_PATH, db_path, false, 1)
 
     //  --  act
-    migrate_db(2, MIGRATIONS_PATH, db_path)
+    migrate_db(MIGRATIONS_PATH, db_path, false, 2)
 
     //  --  assert
     const db = new Database(db_path)
@@ -135,10 +135,10 @@ describe("migrate_db_file_based_database", () => {
 
   test("v1_then_v2_with_init_seeds_timezone_values_set_on_seeded_rows", () => {
     //  --  arrange
-    migrate_db(1, MIGRATIONS_PATH, db_path, true)
+    migrate_db(MIGRATIONS_PATH, db_path, true, 1)
 
     //  --  act
-    migrate_db(2, MIGRATIONS_PATH, db_path)
+    migrate_db(MIGRATIONS_PATH, db_path, false, 2) // seeds are still applied since the DB has been initialized with seeds
 
     //  --  assert
     const db = new Database(db_path)
@@ -161,10 +161,10 @@ describe("migrate_db_file_based_database", () => {
 
   test("v1_with_init_seeds_down_to_v0_all_tables_dropped_user_version_is_0", () => {
     //  --  arrange
-    migrate_db(1, MIGRATIONS_PATH, db_path, true)
+    migrate_db(MIGRATIONS_PATH, db_path, true, 1)
 
     //  --  act
-    migrate_db(0, MIGRATIONS_PATH, db_path)
+    migrate_db(MIGRATIONS_PATH, db_path, false, 0)
 
     //  --  assert
     const db = new Database(db_path)
@@ -175,10 +175,10 @@ describe("migrate_db_file_based_database", () => {
 
   test("v2_with_init_seeds_down_to_v1_added_columns_and_tables_removed_v1_seed_data_intact", () => {
     //  --  arrange
-    migrate_db(2, MIGRATIONS_PATH, db_path, true)
+    migrate_db(MIGRATIONS_PATH, db_path, true, 2)
 
     //  --  act
-    migrate_db(1, MIGRATIONS_PATH, db_path)
+    migrate_db(MIGRATIONS_PATH, db_path, false, 1)
 
     //  --  assert
     const db = new Database(db_path)
@@ -194,10 +194,10 @@ describe("migrate_db_file_based_database", () => {
 
   test("already_at_target_version_no_op_no_error_state_unchanged", () => {
     //  --  arrange
-    migrate_db(1, MIGRATIONS_PATH, db_path)
+    migrate_db(MIGRATIONS_PATH, db_path, false, 1)
 
     //  --  act + assert
-    expect(() => migrate_db(1, MIGRATIONS_PATH, db_path)).not.toThrow()
+    expect(() => migrate_db(MIGRATIONS_PATH, db_path, false, 1)).not.toThrow()
 
     const db = new Database(db_path)
     expect(table_names(db)).toEqual(V1_TABLES)
@@ -207,7 +207,7 @@ describe("migrate_db_file_based_database", () => {
 
   test("v0_to_v2_in_one_call_applies_both_up_migrations_user_version_is_2", () => {
     //  --  act
-    migrate_db(2, MIGRATIONS_PATH, db_path)
+    migrate_db(MIGRATIONS_PATH, db_path, false, 2)
 
     //  --  assert
     const db = new Database(db_path)
@@ -217,12 +217,28 @@ describe("migrate_db_file_based_database", () => {
     db.close()
   })
 
+  test("omitted_apply_version_migrates_up_to_latest_available_version", () => {
+    //  --  act: no apply_version given, working migrations top out at v3
+    migrate_db(MIGRATIONS_PATH, db_path, false)
+
+    //  --  assert
+    const db = new Database(db_path)
+    expect(db_user_version(db)).toBe(3)
+    db.close()
+
+    //  --  act: already at latest, calling again with omitted apply_version is a no-op
+    expect(() => migrate_db(MIGRATIONS_PATH, db_path, false)).not.toThrow()
+    const db2 = new Database(db_path)
+    expect(db_user_version(db2)).toBe(3)
+    db2.close()
+  })
+
   test("full_rollback_v2_to_v0_applies_both_down_migrations_all_tables_dropped", () => {
     //  --  arrange
-    migrate_db(2, MIGRATIONS_PATH, db_path)
+    migrate_db(MIGRATIONS_PATH, db_path, false, 2)
 
     //  --  act
-    migrate_db(0, MIGRATIONS_PATH, db_path)
+    migrate_db(MIGRATIONS_PATH, db_path, false, 0)
 
     //  --  assert
     const db = new Database(db_path)
@@ -235,7 +251,7 @@ describe("migrate_db_file_based_database", () => {
     //  --  act: the broken migration inserts a row violating a NOT NULL constraint
     let caught: unknown
     try {
-      migrate_db(1, BROKEN_MIGRATIONS_PATH, db_path)
+      migrate_db(BROKEN_MIGRATIONS_PATH, db_path, false, 1)
     } catch (err) {
       caught = err
     }
@@ -262,15 +278,12 @@ describe("migrate_db_file_based_database", () => {
     db.close()
   })
 
-  // TDD (red): the runner currently silently skips files failing FILENAME_REGEX, so the valid
-  // 0001 file would still run. Desired behavior — a malformed filename aborts the whole run before
-  // any migration executes. This test is expected to FAIL until read_migration_files is fixed.
   test("invalid_migration_filename_aborts_run_no_migrations_apply_no_db_effects", () => {
     //  --  arrange: dir has a valid 0001 migration + a malformed 0003a45_... file
     let caught: unknown
     try {
       //  --  act
-      migrate_db(1, INVALID_FILENAME_MIGRATIONS_PATH, db_path)
+      migrate_db(INVALID_FILENAME_MIGRATIONS_PATH, db_path, false, 1)
     } catch (err) {
       caught = err
     }
@@ -287,20 +300,20 @@ describe("migrate_db_file_based_database", () => {
 
   test("throws_when_no_up_migration_files_in_range", () => {
     //  --  arrange
-    migrate_db(4, MIGRATIONS_PATH, db_path) // applies up through latest (v3), user_version stays at last applied
+    migrate_db(MIGRATIONS_PATH, db_path, false, 4) // applies up through latest (v3), user_version stays at last applied
 
     //  --  act + assert
-    expect(() => migrate_db(5, MIGRATIONS_PATH, db_path)).toThrow()
+    expect(() => migrate_db(MIGRATIONS_PATH, db_path, false, 5)).toThrow()
   })
 
   // init_seeds behavior: the flag is only evaluated at version 0; subsequent calls use the stored value
 
   test("init_seeds_stored_as_true_applies_seeds_on_subsequent_up_regardless_of_flag", () => {
     //  --  arrange: fresh DB with init_seeds=true → stored as true
-    migrate_db(1, MIGRATIONS_PATH, db_path, true)
+    migrate_db(MIGRATIONS_PATH, db_path, true, 1)
 
     //  --  act: migrate v1→v2 with init_seeds omitted (false) — stored true is used
-    migrate_db(2, MIGRATIONS_PATH, db_path)
+    migrate_db(MIGRATIONS_PATH, db_path, false, 2)
 
     //  --  assert: v2 seeds were applied (timezone values set, not the default 'UTC')
     const db = new Database(db_path)
@@ -313,10 +326,10 @@ describe("migrate_db_file_based_database", () => {
 
   test("init_seeds_stored_as_false_blocks_seeds_on_subsequent_up_regardless_of_flag", () => {
     //  --  arrange: fresh DB with init_seeds omitted (false) → stored as false
-    migrate_db(1, MIGRATIONS_PATH, db_path)
+    migrate_db(MIGRATIONS_PATH, db_path, false, 1)
 
     //  --  act: migrate v1→v2 with init_seeds=true — ignored, stored false is used
-    migrate_db(2, MIGRATIONS_PATH, db_path, true)
+    migrate_db(MIGRATIONS_PATH, db_path, true, 2)
 
     //  --  assert: no seed data (schema only, row counts zero)
     const db = new Database(db_path)
@@ -326,11 +339,11 @@ describe("migrate_db_file_based_database", () => {
 
   test("after_rollback_to_v0_init_seeds_flag_is_re_evaluated_on_next_up", () => {
     //  --  arrange: fresh DB with init_seeds=true, then rolled back to v0
-    migrate_db(1, MIGRATIONS_PATH, db_path, true)
-    migrate_db(0, MIGRATIONS_PATH, db_path)
+    migrate_db(MIGRATIONS_PATH, db_path, true, 1)
+    migrate_db(MIGRATIONS_PATH, db_path, false, 0)
 
     //  --  act: re-migrate from v0 with init_seeds omitted (false) — re-evaluated at v0, stored false
-    migrate_db(1, MIGRATIONS_PATH, db_path)
+    migrate_db(MIGRATIONS_PATH, db_path, false, 1)
 
     //  --  assert: no seed data despite previous init_seeds=true run
     const db = new Database(db_path)
@@ -342,10 +355,10 @@ describe("migrate_db_file_based_database", () => {
 
   test("v2_then_v3_up_adds_mentor_birder_id_column_to_birders", () => {
     //  --  arrange
-    migrate_db(2, MIGRATIONS_PATH, db_path)
+    migrate_db(MIGRATIONS_PATH, db_path, false, 2)
 
     //  --  act
-    migrate_db(3, MIGRATIONS_PATH, db_path)
+    migrate_db(MIGRATIONS_PATH, db_path, false, 3)
 
     //  --  assert
     const db = new Database(db_path)
@@ -356,7 +369,7 @@ describe("migrate_db_file_based_database", () => {
 
   test("v0_to_v3_with_init_seeds_carol_mentor_is_alice", () => {
     //  --  act
-    migrate_db(3, MIGRATIONS_PATH, db_path, true)
+    migrate_db(MIGRATIONS_PATH, db_path, true, 3)
 
     //  --  assert
     const db = new Database(db_path)
@@ -369,10 +382,10 @@ describe("migrate_db_file_based_database", () => {
 
   test("v3_down_to_v2_drops_mentor_birder_id_column_after_nulling_fk_values", () => {
     //  --  arrange: full v3 with seeded mentor relationships
-    migrate_db(3, MIGRATIONS_PATH, db_path, true)
+    migrate_db(MIGRATIONS_PATH, db_path, true, 3)
 
     //  --  act
-    migrate_db(2, MIGRATIONS_PATH, db_path)
+    migrate_db(MIGRATIONS_PATH, db_path, false, 2)
 
     //  --  assert: column is gone, birder rows preserved
     const db = new Database(db_path)
@@ -391,26 +404,26 @@ describe("migrate_db_in_memory_database", () => {
   // verify that each migration path executes without errors.
 
   test("v0_to_v1_up_no_error", () => {
-    expect(() => migrate_db(1, MIGRATIONS_PATH, ":memory:")).not.toThrow()
+    expect(() => migrate_db(MIGRATIONS_PATH, ":memory:", false, 1)).not.toThrow()
   })
 
   test("v0_to_v1_with_init_seeds_no_error", () => {
-    expect(() => migrate_db(1, MIGRATIONS_PATH, ":memory:", true)).not.toThrow()
+    expect(() => migrate_db(MIGRATIONS_PATH, ":memory:", true, 1)).not.toThrow()
   })
 
   test("v0_to_v2_up_no_error", () => {
-    expect(() => migrate_db(2, MIGRATIONS_PATH, ":memory:")).not.toThrow()
+    expect(() => migrate_db(MIGRATIONS_PATH, ":memory:", false, 2)).not.toThrow()
   })
 
   test("v0_to_v2_with_init_seeds_no_error", () => {
-    expect(() => migrate_db(2, MIGRATIONS_PATH, ":memory:", true)).not.toThrow()
+    expect(() => migrate_db(MIGRATIONS_PATH, ":memory:", true, 2)).not.toThrow()
   })
 
   test("v0_to_v3_up_no_error", () => {
-    expect(() => migrate_db(3, MIGRATIONS_PATH, ":memory:")).not.toThrow()
+    expect(() => migrate_db(MIGRATIONS_PATH, ":memory:", false, 3)).not.toThrow()
   })
 
   test("v0_to_v3_with_init_seeds_no_error", () => {
-    expect(() => migrate_db(3, MIGRATIONS_PATH, ":memory:", true)).not.toThrow()
+    expect(() => migrate_db(MIGRATIONS_PATH, ":memory:", true, 3)).not.toThrow()
   })
 })

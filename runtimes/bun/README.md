@@ -74,7 +74,7 @@ import { migrate_db } from "litevolve-bun"
 // Apply migrations up (or down) to reach version 2.
 // Returns the open Bun Database handle.
 const db = migrate_db(
-  2,                    // apply_version: target schema version
+  2,                    // apply_version: target schema version, or undefined for "latest"
   "./migrations",       // migrations_path: directory holding the .sql files
   "./data/birds.db",    // db_path: SQLite file (or ":memory:")
   true,                 // init_seeds: only honored on a fresh DB at v0
@@ -89,7 +89,8 @@ type is `migration_error` in `src/core/migration_error.ts`.
 
 ## CLI_usage
 
-The CLI takes the same four inputs as named flags:
+The CLI takes the same four inputs as named flags. `--apply_version` is optional — omit it to
+migrate up to the highest-numbered migration file in `migrations_path`:
 
 ```sh
 litevolve \
