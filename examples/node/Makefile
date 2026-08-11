@@ -14,7 +14,7 @@ check_version:
 	[ "$$pinned" = "$$latest" ] || { echo "$(PKG) $$pinned is not the latest ($$latest)"; exit 1; }
 
 up: down
-	docker run -d --name $(CONTAINER) \
+	docker run --detach --rm --name $(CONTAINER) \
 		-v $(CURDIR):/app/examples/node \
 		-v $(CURDIR)/../../migrations:/app/migrations:ro \
 		-w /app/examples/node \
@@ -41,4 +41,6 @@ run_bin:
 		--init_seeds
 
 down:
-	-docker rm -f $(CONTAINER)
+	-docker stop $(CONTAINER)
+	-docker rm --force $(CONTAINER)
+	rm -f package-lock.json
