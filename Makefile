@@ -133,6 +133,9 @@ align_artifacts: ## align core directory with node and deno versions, bun versio
 	cp README.md $(RUNTIMES_DIR)/node/README.md
 	cp README.md $(RUNTIMES_DIR)/bun/README.md
 	cp README.md $(RUNTIMES_DIR)/deno/README.md
+	cp -R logo/* $(RUNTIMES_DIR)/node/logo
+	cp -R logo/* $(RUNTIMES_DIR)/bun/logo
+	cp -R logo/* $(RUNTIMES_DIR)/node/logo
 
 .PHONY: test
 test: ## run core + bun adapter tests (e.g. make test <name>)

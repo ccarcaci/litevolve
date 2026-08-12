@@ -1,4 +1,4 @@
-# litevolve
+![litevolve](./logo/high-resolution-color-logo_800_346.png)
 
 Versioned SQLite migrations for Bun, Node, and Deno — usable as a library or a CLI.
 
