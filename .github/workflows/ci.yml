@@ -29,6 +29,8 @@ jobs:
         run: scripts/ci_lint.sh
       - name: core align
         run: scripts/ci_check_align.sh
+      - name: comparison table alignment
+        run: scripts/ci_check_comparison_stats.sh
 
   check_bun:
     name: check_bun
