@@ -26,12 +26,40 @@ NPM_PKGS=("litevolve-bun,litevolve-node,litevolve-deno" "sqlite-auto-migrator" "
 
 # ponytail: no array for the optional auth header — bash 3.2 (macOS default) treats
 # an empty array under `set -u` as unbound, so branch on a plain string instead.
+#
+# Checks the HTTP status explicitly instead of `curl -f`: a rate-limited 403 from
+# api.github.com over HTTP/2 makes curl's own error handling misfire as exit 56
+# (CURLE_RECV_ERROR) instead of a clean fail-on-error exit, so we read the status
+# ourselves and hard-exit with a readable message instead of a bare curl crash.
 gh_api() {
+  local endpoint="$1" status body_file headers_file body reset reset_human
+  body_file=$(mktemp)
+  headers_file=$(mktemp)
+
   if [ -n "${GITHUB_TOKEN:-}" ]; then
-    curl -sf -H "Authorization: Bearer $GITHUB_TOKEN" -H "Accept: application/vnd.github+json" "https://api.github.com/$1"
+    status=$(curl -s -o "$body_file" -D "$headers_file" -w '%{http_code}' \
+      -H "Authorization: Bearer $GITHUB_TOKEN" -H "Accept: application/vnd.github+json" \
+      "https://api.github.com/$endpoint")
   else
-    curl -sf -H "Accept: application/vnd.github+json" "https://api.github.com/$1"
+    status=$(curl -s -o "$body_file" -D "$headers_file" -w '%{http_code}' \
+      -H "Accept: application/vnd.github+json" "https://api.github.com/$endpoint")
   fi
+  body=$(cat "$body_file")
+
+  if [ "$status" = "403" ] && grep -qi "rate limit" "$body_file"; then
+    reset=$(grep -i '^x-ratelimit-reset:' "$headers_file" | tail -n1 | tr -d '\r' | awk '{print $2}')
+    reset_human=$(date -u -r "$reset" +"%Y-%m-%dT%H:%M:%SZ" 2>/dev/null \
+      || date -u -d "@$reset" +"%Y-%m-%dT%H:%M:%SZ" 2>/dev/null || echo "$reset (unix epoch)")
+    rm -f "$body_file" "$headers_file"
+    echo "error: GitHub API rate limit exceeded (0 requests remaining)" >&2
+    echo "resets at $reset_human" >&2
+    echo "fix: export GITHUB_TOKEN=<token> and re-run (raises the cap from 60/hr to 5000/hr)" >&2
+    exit 1
+  fi
+
+  rm -f "$body_file" "$headers_file"
+  [ "${status:0:1}" = "2" ] || return 1
+  printf '%s' "$body"
 }
 
 # npm_latest_date "pkg1,pkg2,..." -> latest publish date (YYYY-MM-DD) across those
