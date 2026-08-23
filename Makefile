@@ -160,6 +160,10 @@ format: ## fix formatting, linting (safe fixes), and import sorting with biome
 	@echo "fixing formatting, linting, and import sorting..."
 	@$(BIOME) check --write $(RUNTIMES_DIR)/
 
+.PHONY: update_comparison
+update_comparison: ## update comparison table in README.md
+	@$(SCRIPTS_DIR)/update_comparison_stats.sh
+
 ##@ CI checks
 
 .PHONY: check_version
@@ -195,7 +199,7 @@ ci_test: ## run core + bun adapter tests with bun
 	@$(SCRIPTS_DIR)/ci_test.sh bun
 
 .PHONY: ci_checks
-ci_checks: check_version ci_check_align ci_check_updates ci_check_lint ci_check_build ci_sec ci_test ## run all CI checks in order
+ci_checks: check_version ci_check_align ci_check_updates ci_check_lint ci_check_build ci_sec ci_test update_comparison ## run all CI checks in order
 	@echo "all CI checks passed!"
 
 ##@ CI gen
