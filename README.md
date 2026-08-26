@@ -60,12 +60,12 @@ is compared on its migration tooling (`drizzle-kit`) only, not its query builder
 | Docker image | Coming soon | None | ✅ [`halvardm/nessie`](https://hub.docker.com/r/halvardm/nessie) (unmaintained, last updated ~5 years ago) | None |
 | Executables | Coming soon | None | None | None |
 | Package manager | npm + coming soon via most common managers (HomeBrew, Snap, ...) | npm only | [deno.land/x](https://deno.land/x/nessie), [nest.land](https://nest.land/package/Nessie), not on npm or Homebrew | npm only |
-| Stars | 1 | 7 | 519 | 35554 |
-| Open issues | ✅ 1 (Renovate dashboard) | ✅ 0 | 8 | 1977 |
-| Latest release | ✅ 2026-08-11 | 2025-05-17 | 2023-09-24 | 2026-03-27 |
-| Latest commit | ✅ 2026-08-22 | 2025-05-17 | 2023-09-24 | 2026-07-23 |
+| Stars | 1 | 7 | 519 | 35594 |
+| Open issues | 2 | ✅ 0 | 8 | 1983 |
+| Latest release | ✅ 2026-08-26 | 2025-05-17 | 2023-09-24 | 2026-03-27 |
+| Latest commit | ✅ 2026-08-26 | 2025-05-17 | 2023-09-24 | 2026-07-23 |
 
-_Comparison stats last fetched: 2026-08-23_
+_Comparison stats last fetched: 2026-08-26_
 
 ## install
 
