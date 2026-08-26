@@ -31,8 +31,8 @@ help: ## show this help message
 
 .PHONY: _check_args
 _check_args:
-	@[ -n "$(DB_PATH)" ] || (echo "error: DB_PATH is required  (e.g. make migrate DB_PATH=./data/example_foo.db VERSION=1)"; exit 1)
-	@[ -n "$(VERSION)" ] || (echo "error: VERSION is required  (e.g. make migrate DB_PATH=./data/example_bar.db VERSION=1)"; exit 1)
+	@[ -n "$(DB_PATH)" ] || { echo "error: DB_PATH is required  (e.g. make migrate DB_PATH=./data/example_foo.db VERSION=1)"; exit 1; }
+	@[ -n "$(VERSION)" ] || { echo "error: VERSION is required  (e.g. make migrate DB_PATH=./data/example_bar.db VERSION=1)"; exit 1; }
 
 .PHONY: migrate
 .ONESHELL:
@@ -207,6 +207,15 @@ ci_checks: check_version ci_check_align ci_check_comparison_stats ci_check_updat
 	@echo "all CI checks passed!"
 
 ##@ CI gen
+
+.PHONY: ci_force_create_releases
+ci_force_create_releases: ## create any missing GitHub release for a tagged commit, via Docker (no local gh install needed). GH_TOKEN=<token>
+	@[ -n "$$GH_TOKEN" ] || { echo "error: GH_TOKEN is required - create a PAT with repo scope at https://github.com/settings/tokens, then GH_TOKEN=<token> make ci_force_create_releases"; exit 1; }
+	@docker run --rm \
+		-v "$(MAKEFILE_DIR):/app" \
+		-e GH_TOKEN \
+		serversideup/github-cli:latest \
+		sh /app/scripts/ci_create_releases.sh
 
 VALID_TARGETS := bun-darwin-arm64 bun-darwin-x64 bun-darwin-x64-baseline \
                  bun-linux-x64 bun-linux-x64-modern bun-linux-x64-baseline \

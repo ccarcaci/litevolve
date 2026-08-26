@@ -1,0 +1,65 @@
+name: release
+
+# Creates a GitHub Release for every commit carrying one or more
+# litevolve-{bun,node,deno}@<version> tags, grouping same-commit tags into a
+# single release. scripts/ci_create_releases.sh is idempotent - it skips any
+# commit that already has a release - so this runs on every tag push and can
+# also be re-run by hand (workflow_dispatch) to backfill releases missing
+# from history.
+on:
+  push:
+    tags:
+      - "litevolve-bun@*"
+      - "litevolve-node@*"
+      - "litevolve-deno@*"
+  workflow_dispatch:
+
+permissions: {}
+
+# the script scans the whole tag history on every run, so two runs racing
+# each other could both decide a release is missing - queue instead of
+# parallelizing
+concurrency:
+  group: ${{ github.workflow }}
+
+jobs:
+  # a push event carries either a branch or a tag, never both, so "on main" cannot
+  # be expressed as a trigger filter - it has to be asserted against the history
+  guard:
+    name: tag is on main
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          fetch-depth: 0 # ancestry check needs main's history, not just the tag
+          persist-credentials: false
+
+      - name: tag must be an ancestor of main
+        if: github.ref_type == 'tag'
+        run: |
+          git merge-base --is-ancestor "$GITHUB_SHA" origin/main || {
+            echo "tag $GITHUB_REF_NAME points at $GITHUB_SHA, which is not on main"
+            echo "tag the merged commit on main, not a branch commit"
+            exit 1; }
+
+  release:
+    name: create missing releases
+    needs: guard
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          fetch-depth: 0 # need full tag + commit history to scan and diff
+          fetch-tags: true
+          persist-credentials: false
+
+      - name: create missing releases
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: scripts/ci_create_releases.sh
