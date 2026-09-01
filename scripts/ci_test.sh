@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Run tests for the specified framework
-# Usage: ./scripts/ci_test.sh <bun|node|deno>
+# Usage: ./scripts/ci_test.sh <bun|node>
 
 set -e
 
@@ -17,12 +17,8 @@ case "$FRAMEWORK" in
     # execute node-specific tests
     node --test runtimes/node/**/*.test.ts
     ;;
-  deno)
-    # execute deno-specific tests
-    deno test --allow-read --allow-write runtimes/deno/
-    ;;
   *)
-    echo "Usage: $0 <bun|node|deno>"
+    echo "Usage: $0 <bun|node>"
     exit 1
     ;;
 esac

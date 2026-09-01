@@ -1,7 +1,7 @@
 #!/bin/sh
 
 # Create a GitHub release for every commit that carries one or more
-# "litevolve-{bun,node,deno}@<version>" tags but has no release yet. Multiple
+# "litevolve-{bun,node}@<version>" tags but has no release yet. Multiple
 # package tags can land on the same commit (e.g. a bun+node release together)
 # - those are folded into a single release, anchored on one of the tags and
 # titled with every tag at that commit. Idempotent: an existing release is
@@ -17,7 +17,7 @@
 
 set -eu
 
-TAG_PATTERN='^litevolve-(bun|node|deno)@'
+TAG_PATTERN='^litevolve-(bun|node)@'
 
 tags="$(git for-each-ref --format='%(refname:short)' refs/tags | grep -E "$TAG_PATTERN" || true)"
 

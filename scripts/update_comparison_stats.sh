@@ -22,7 +22,7 @@ NAMES=(litevolve sqlite-auto-migrator deno-nessie drizzle-orm)
 SLUGS=(ccarcaci/litevolve SanderGi/sqlite-auto-migrator halvardssm/deno-nessie drizzle-team/drizzle-orm)
 # comma-separated npm package names, used as the "latest release" fallback when a
 # tool has no GitHub Release object; empty entry means no fallback (GitHub only)
-NPM_PKGS=("litevolve-bun,litevolve-node,litevolve-deno" "sqlite-auto-migrator" "" "")
+NPM_PKGS=("litevolve-bun,litevolve-node" "sqlite-auto-migrator" "" "")
 
 # ponytail: no array for the optional auth header — bash 3.2 (macOS default) treats
 # an empty array under `set -u` as unbound, so branch on a plain string instead.

@@ -1,7 +1,7 @@
 name: release
 
 # Creates a GitHub Release for every commit carrying one or more
-# litevolve-{bun,node,deno}@<version> tags, grouping same-commit tags into a
+# litevolve-{bun,node}@<version> tags, grouping same-commit tags into a
 # single release. scripts/ci_create_releases.sh is idempotent - it skips any
 # commit that already has a release - so this runs on every tag push and can
 # also be re-run by hand (workflow_dispatch) to backfill releases missing
@@ -11,7 +11,6 @@ on:
     tags:
       - "litevolve-bun@*"
       - "litevolve-node@*"
-      - "litevolve-deno@*"
   workflow_dispatch:
 
 permissions: {}
