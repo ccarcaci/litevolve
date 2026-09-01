@@ -4,7 +4,10 @@ PKG := litevolve-node
 
 .PHONY: run up install check_version typecheck migrate down
 
-run: check_version up install typecheck migrate run_bin down
+# ponytail: teardown is a recipe step, not a prerequisite — make runs a prereq
+# only once, so listing `down` twice would skip the final stop
+run: check_version up install typecheck migrate run_bin
+	$(MAKE) down
 
 # ponytail: host-side, no container needed — the pin in package.json is what we compare
 check_version:
@@ -41,5 +44,5 @@ run_bin:
 		--init_seeds
 
 down:
-	docker stop $(CONTAINER)
+	-docker stop $(CONTAINER)
 	rm -f package-lock.json

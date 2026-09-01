@@ -2,12 +2,19 @@ IMAGE ?= denoland/deno:alpine
 CONTAINER ?= litevolve_example_deno
 PKG := litevolve-node
 
-.PHONY: run up install typecheck migrate run_bin down
+.PHONY: run up install check_version typecheck migrate run_bin down
 
-run: up install typecheck migrate run_bin down
+# ponytail: teardown is a recipe step, not a prerequisite — make runs a prereq
+# only once, so listing `down` twice would skip the final stop
+run: check_version up install typecheck migrate run_bin
+	$(MAKE) down
 
-# ponytail: no check_version target — deno.json pins litevolve-node exactly (0.2.2),
-# a "must equal npm latest" check would just break `make run` on every upstream release
+# ponytail: host-side, no container needed — the deno.json pin is what we compare
+check_version:
+	@pinned=$$(sed -n 's/.*npm:$(PKG)@\([^"]*\)".*/\1/p' deno.json); \
+	latest=$$(npm view $(PKG) version); \
+	echo "pinned=$$pinned latest=$$latest"; \
+	[ "$$pinned" = "$$latest" ] || { echo "$(PKG) $$pinned is not the latest ($$latest)"; exit 1; }
 
 # ponytail: denoland/deno's entrypoint is `deno`, so override it to keep the container alive
 up: down
@@ -28,16 +35,16 @@ migrate:
 
 # deno runs the package's single `bin` entry (litevolve-node/dist/run_litevolve.js)
 run_bin:
-	docker exec $(CONTAINER) deno run -A npm:$(PKG)@0.2.2 \
+	docker exec $(CONTAINER) deno run -A npm:$(PKG) \
 		--apply_version=3 \
 		--db_path=:memory: \
 		--migrations_path=/app/migrations/working \
 		--init_seeds
-	docker exec $(CONTAINER) deno run -A npm:$(PKG)@0.2.2 \
+	docker exec $(CONTAINER) deno run -A npm:$(PKG) \
 		--db_path=:memory: \
 		--migrations_path=/app/migrations/working \
 		--init_seeds
 
 down:
-	docker stop $(CONTAINER)
+	-docker stop $(CONTAINER)
 	rm -f deno.lock
