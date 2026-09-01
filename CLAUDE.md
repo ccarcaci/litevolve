@@ -107,7 +107,10 @@ self-hosted-only).
 
 ### Still checked by nothing
 
-Verify by hand when bumping a runtime: the `IMAGE ?=` pins in the two example Makefiles
-(`examples/{bun,node}/Makefile`), the `$schema` URLs in `biome.json` and
+Verify by hand when bumping a runtime: the `IMAGE ?=` pins in the three example Makefiles
+(`examples/{bun,node,deno}/Makefile`), the `$schema` URLs in `biome.json` and
 `.changeset/config.json`, the README version badges, and the unpinned global
 `npm install --global esbuild` in both workflows.
+
+`examples/deno/` consumes the published `litevolve-node` through an `npm:` specifier (there is
+no `litevolve-deno`); its `litevolve-node` pin lives in `examples/deno/deno.json`.
