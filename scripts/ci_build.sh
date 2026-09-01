@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Build the specified framework package
-# Usage: ./scripts/ci_build.sh <bun|node|deno>
+# Usage: ./scripts/ci_build.sh <bun|node>
 
 set -e
 
@@ -20,19 +20,8 @@ case "$FRAMEWORK" in
     esbuild runtimes/node/src/run_litevolve.ts --bundle --platform=node --format=esm --external:node:* --outfile=runtimes/node/dist/run_litevolve.js
     tsc --project runtimes/node/tsconfig.json
     ;;
-  deno)
-    deno compile runtimes/deno/src/index.ts \
-      --bundle --target node \
-      --external better-sqlite3 \
-      --outdir runtimes/deno/dist/
-    deno compile runtimes/deno/src/run_litevolve.ts \
-      --bundle --target node \
-      --external better-sqlite3 \
-      --outdir runtimes/deno/dist/
-    deno check runtimes/deno/src/index.ts
-    ;;
   *)
-    echo "Usage: $0 <bun|node|deno>"
+    echo "Usage: $0 <bun|node>"
     exit 1
     ;;
 esac

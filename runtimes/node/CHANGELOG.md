@@ -1,5 +1,18 @@
 # litevolve-node
 
+## 0.2.2
+
+### Patch Changes
+
+- - renovate/ Update dependency @types/node to v26.4.0
+  - docs: refresh comparison stats freshness dates in READMEs
+  - renovate/ Update dependency @types/node to v26.3.0
+  - docs: add Docker image, executables, and package manager comparison rows
+  - feat: add graft repo indexing and an automated README comparison table
+  - renovate/ Update dependency @changesets/cli to v3.0.1
+  - renovate/ Update dependency @changesets/cli to v3
+  - docs(readme): add project logo to package READMEs
+
 ## 0.2.1
 
 ### Patch Changes

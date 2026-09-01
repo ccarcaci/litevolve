@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Type-check the specified framework package using tsc --noEmit
-# Usage: ./scripts/ci_types.sh <bun|node|deno>
+# Usage: ./scripts/ci_types.sh <bun|node>
 
 set -e
 
@@ -15,11 +15,8 @@ case "$FRAMEWORK" in
   node)
     tsc --noEmit --project runtimes/node/tsconfig.json
     ;;
-  deno)
-    tsc --noEmit --project runtimes/deno/tsconfig.json
-    ;;
   *)
-    echo "Usage: $0 <bun|node|deno>"
+    echo "Usage: $0 <bun|node>"
     exit 1
     ;;
 esac

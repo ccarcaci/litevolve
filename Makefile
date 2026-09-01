@@ -59,22 +59,17 @@ migrate_seeds: _check_args ## migrate fresh DB to VERSION with seeds (--init_see
 
 NODE_CHANGESET_DIR := $(RUNTIMES_DIR)/node/.changeset
 BUN_CHANGESET_DIR := $(RUNTIMES_DIR)/bun/.changeset
-DENO_CHANGESET_DIR := $(RUNTIMES_DIR)/deno/.changeset
 .PHONY: yield_version
 .ONESHELL:
-yield_version: ## bump versions from changeset files (node + bun + deno), commit and tag <pkg>@<semver>
+yield_version: ## bump versions from changeset files (node + bun), commit and tag <pkg>@<semver>
 	@[ -f $(NODE_CHANGESET_DIR)/curr_changeset.md ] || $(SCRIPTS_DIR)/gen_changeset.sh node > $(NODE_CHANGESET_DIR)/curr_changeset.md
 	@[ -f $(BUN_CHANGESET_DIR)/curr_changeset.md ] || $(SCRIPTS_DIR)/gen_changeset.sh bun > $(BUN_CHANGESET_DIR)/curr_changeset.md
-	@[ -f $(DENO_CHANGESET_DIR)/curr_changeset.md ] || $(SCRIPTS_DIR)/gen_changeset.sh deno > $(DENO_CHANGESET_DIR)/curr_changeset.md
 	@if ls $(NODE_CHANGESET_DIR)/*.md 2>/dev/null | grep -qv README.md; then \
 		echo "versioning node..."; cd $(RUNTIMES_DIR)/node && npx changeset version; cd $(MAKEFILE_DIR); \
 	else echo "node: no changeset, skipping"; fi
 	@if ls $(BUN_CHANGESET_DIR)/*.md 2>/dev/null | grep -qv README.md; then \
 		echo "versioning bun..."; cd $(RUNTIMES_DIR)/bun && bunx changeset version; cd $(MAKEFILE_DIR); \
 	else echo "bun: no changeset, skipping"; fi
-	@if ls $(DENO_CHANGESET_DIR)/*.md 2>/dev/null | grep -qv README.md; then \
-		echo "versioning deno..."; cd $(RUNTIMES_DIR)/deno && npx changeset version; cd $(MAKEFILE_DIR); \
-	else echo "deno: no changeset, skipping"; fi
 
 # tag name and version both come from package.json, so they cannot drift from what
 # gets published - publish.yml re-runs the same check and refuses a mismatch.
@@ -86,7 +81,6 @@ yield_new_version: ## tag the current main commit <pkg>@<semver>, run after the 
 		{ echo "error: not on main - publish.yml refuses tags that are not on main"; exit 1; }
 	@git diff --quiet && git diff --cached --quiet || \
 		{ echo "error: uncommitted changes - the tag would not describe them"; exit 1; }
-	# add deno here to enable tagging
 	@for rt in bun node ; do \
 		tag="$$(cd $(RUNTIMES_DIR)/$$rt && node -p "const p = require('./package.json'); p.name + '@' + p.version")"; \
 		if git rev-parse -q --verify "refs/tags/$$tag" >/dev/null; then \
@@ -124,15 +118,12 @@ clean: ## remove node_modules, bun.lockb, *.db, runtimes/*/dist/
 ##@ development
 
 .PHONY: align_artifacts
-align_artifacts: ## align core directory with node and deno versions, bun version is the master one
+align_artifacts: ## align bun core directory with node version, bun version is the master one
 	cp -R $(BUN_SRC)/core/* $(RUNTIMES_DIR)/node/src/core
-	cp -R $(BUN_SRC)/core/* $(RUNTIMES_DIR)/deno/src/core
 	cp LICENSE $(RUNTIMES_DIR)/node/LICENSE
 	cp LICENSE $(RUNTIMES_DIR)/bun/LICENSE
-	cp LICENSE $(RUNTIMES_DIR)/deno/LICENSE
 	cp README.md $(RUNTIMES_DIR)/node/README.md
 	cp README.md $(RUNTIMES_DIR)/bun/README.md
-	cp README.md $(RUNTIMES_DIR)/deno/README.md
 	cp -R logo/* $(RUNTIMES_DIR)/node/logo
 	cp -R logo/* $(RUNTIMES_DIR)/bun/logo
 	cp -R logo/* $(RUNTIMES_DIR)/node/logo
@@ -172,18 +163,12 @@ check_version: ## check that installed bun version matches .bun_version
 	@$(SCRIPTS_DIR)/check_bun_version.sh
 
 .PHONY: ci_check_align
-ci_check_align: ## check that node/core/src and deno/core/src are aligned with bun/core/src
+ci_check_align: ## check that node/core/src is aligned with bun/core/src
 	@$(SCRIPTS_DIR)/ci_check_align.sh
 
 .PHONY: ci_check_comparison_stats
 ci_check_comparison_stats: ## check the README comparison table stats aren't stale (MAX_AGE_DAYS=<n>, default 30)
 	@$(SCRIPTS_DIR)/ci_check_comparison_stats.sh
-
-.PHONY: ci_check_updates
-ci_check_updates: ## check the version pins Renovate does not cover (currently .deno-version)
-	@$(SCRIPTS_DIR)/ci_check_updates_bun.sh
-	@$(SCRIPTS_DIR)/ci_check_updates_node.sh
-	@$(SCRIPTS_DIR)/ci_check_updates_deno.sh
 
 .PHONY: ci_check_lint
 ci_check_lint: ## run biome linter on runtimes/
@@ -203,7 +188,7 @@ ci_test: ## run core + bun adapter tests with bun
 	@$(SCRIPTS_DIR)/ci_test.sh bun
 
 .PHONY: ci_checks
-ci_checks: check_version ci_check_align ci_check_comparison_stats ci_check_updates ci_check_lint ci_check_build ci_sec ci_test ## run all CI checks in order
+ci_checks: check_version ci_check_align ci_check_comparison_stats ci_check_lint ci_check_build ci_sec ci_test ## run all CI checks in order
 	@echo "all CI checks passed!"
 
 ##@ CI gen

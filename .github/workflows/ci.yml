@@ -46,8 +46,6 @@ jobs:
       - name: install dependencies (check lockfile)
         run: bun ci
         working-directory: runtimes/bun
-      - name: check dependency updates
-        run: scripts/ci_check_updates_bun.sh
       - name: build
         run: scripts/ci_build.sh bun
       - name: type check
@@ -73,8 +71,6 @@ jobs:
       - name: install dependencies (check lockfile)
         run: npm ci
         working-directory: runtimes/node
-      - name: check dependency updates
-        run: scripts/ci_check_updates_node.sh
       - name: build
         run: scripts/ci_build.sh node
       - name: type check
@@ -84,34 +80,8 @@ jobs:
       - name: test
         run: scripts/ci_test.sh node
 
-  check_deno:
-    name: check_deno
-    if: false
-    needs: lint
-    runs-on: ubuntu-latest
-    steps:
-      - name: checkout
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
-      - name: install deno
-        uses: denoland/setup-deno@22d081ff2d3a40755e97629de92e3bcbfa7cf2ed # v2.0.5
-        with:
-          deno-version-file: ".deno-version"
-      - name: install dependencies (check lockfile)
-        run: deno ci
-        working-directory: runtimes/deno
-      - name: check dependency updates
-        run: scripts/ci_check_updates_deno.sh
-      - name: build
-        run: scripts/ci_build.sh deno
-      - name: type check
-        run: scripts/ci_types.sh deno
-      - name: security audit
-        run: scripts/ci_sec.sh deno
-      - name: test
-        run: scripts/ci_test.sh deno
-
   executables_smoke_checks:
-    needs: [check_bun, check_node] # +check_deno
+    needs: [check_bun, check_node]
     name: executables_smoke_checks_(${{ matrix.runner }})
     runs-on: ${{ matrix.runner }}
 

@@ -1,5 +1,20 @@
 # litevolve-bun
 
+## 0.2.2
+
+### Patch Changes
+
+- - renovate/ Update dependency @biomejs/biome to v2.5.11
+  - docs: refresh comparison stats freshness dates in READMEs
+  - docs: add Docker image, executables, and package manager comparison rows
+  - feat: add graft repo indexing and an automated README comparison table
+  - renovate/ Update dependency @biomejs/biome to v2.5.10
+  - renovate/ Update dependency @types/bun to v1.4.0
+  - renovate/ Update dependency @changesets/cli to v3.0.1
+  - renovate/ Update dependency @biomejs/biome to v2.5.9
+  - renovate/ Update dependency @changesets/cli to v3
+  - docs(readme): add project logo to package READMEs
+
 ## 0.2.1
 
 ### Patch Changes

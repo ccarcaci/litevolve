@@ -3,7 +3,7 @@
 # Print changeset file content for <runtime>: a "patch" bump whose body is the
 # commit messages touching runtimes/<runtime> since the latest <pkg>@<version> tag
 # (all commits if the package has no tag yet, i.e. first release).
-# Usage: ./scripts/gen_changeset.sh <bun|node|deno>
+# Usage: ./scripts/gen_changeset.sh <bun|node>
 
 set -e
 

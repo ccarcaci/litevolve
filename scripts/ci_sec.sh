@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Security audit for the specified framework package
-# Usage: ./scripts/ci_sec.sh <bun|node|deno>
+# Usage: ./scripts/ci_sec.sh <bun|node>
 
 set -e
 
@@ -16,12 +16,8 @@ case "$FRAMEWORK" in
   node)
     npm audit
     ;;
-  deno)
-    echo "deno auditing not implemented yet"
-    exit 1
-    ;;
   *)
-    echo "Usage: $0 <bun|node|deno>"
+    echo "Usage: $0 <bun|node>"
     exit 1
     ;;
 esac
