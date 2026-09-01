@@ -10,7 +10,7 @@ const latest_version = 3
 // ponytail: start from a clean db so the example is re-runnable
 rmSync(db_path, { force: true })
 
-const db = migrate_db(latest_version, migrations_path, db_path, true)
+const db = migrate_db(migrations_path, db_path, true, latest_version)
 
 const { user_version } = db.query("PRAGMA user_version").get() as { user_version: number }
 if (user_version !== latest_version) {

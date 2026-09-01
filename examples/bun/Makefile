@@ -38,6 +38,6 @@ run_bin:
 		--init_seeds
 
 down:
-	-docker stop $(CONTAINER)
-	-docker rm --force $(CONTAINER)
+	docker stop $(CONTAINER)
+	docker rm --force $(CONTAINER)
 	rm -f bun.lock

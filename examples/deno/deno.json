@@ -1,0 +1,10 @@
+{
+  "nodeModulesDir": "auto",
+  "tasks": {
+    "start": "deno run -A main.ts",
+    "typecheck": "deno check main.ts"
+  },
+  "imports": {
+    "litevolve-node": "npm:litevolve-node@0.2.2"
+  }
+}
