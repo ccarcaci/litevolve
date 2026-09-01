@@ -39,5 +39,4 @@ run_bin:
 
 down:
 	docker stop $(CONTAINER)
-	docker rm --force $(CONTAINER)
 	rm -f bun.lock
