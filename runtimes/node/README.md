@@ -19,20 +19,14 @@ Versioned SQLite migrations for Bun, Node, and Deno — usable as a library or a
 
 `litevolve` reads a directory of numbered SQL files (`{version}_name.sql`, `{version}_name.down.sql`, optional `{version}_name.seed.sql`) and applies them up or down against a SQLite database to reach a target schema version. Each step runs in a single `BEGIN IMMEDIATE` transaction so a failed seed rolls back its schema change too. The current schema version is tracked in SQLite's native `PRAGMA user_version`; a sticky `init_seeds` flag is recorded in an internal `_db_meta` table so seed behavior stays consistent across subsequent upgrades.
 
-## status
+## library_status
 
-| package                                                        | source            |
-| -------------------------------------------------------------- | ----------------- |
-| [`litevolve-bun`](https://www.npmjs.com/package/litevolve-bun)   | `runtimes/bun`    |
-| [`litevolve-node`](https://www.npmjs.com/package/litevolve-node) / for Deno too | `runtimes/node`   |
+| package                                                                         | source            | master copy |
+| ------------------------------------------------------------------------------- | ----------------- | ----------- |
+| [`litevolve-bun`](https://www.npmjs.com/package/litevolve-bun)                  | `runtimes/bun`    | ✅          |
+| [`litevolve-node`](https://www.npmjs.com/package/litevolve-node) / for Deno too | `runtimes/node`   |             |
 
-`runtimes/bun` is the master copy: `make align_artifacts` copies `src/core` from it into
-`runtimes/node`, and `make ci_check_align` fails the build if it has drifted. Only the thin
-adapter (`src/index.ts`, `src/*_adapter.ts`) differs between them. Deno consumers use
-`litevolve-node` through `npm:` specifiers - there is no separate Deno package.
-
-Not distributed yet, despite the sections below describing them:
-
+Not distributed yet:
 - **standalone binaries** — built and smoke-tested in CI, not attached to releases
 - **the docker image** — `scripts/Dockerfile` exists but no image is published
 
@@ -80,6 +74,8 @@ brew install litevolve
 
 ## library_usage
 
+See the [example](/example) folder for usage examples in different runtimes.
+
 ```ts
 // Import from the runtime-specific package: litevolve-bun or litevolve-node.
 import { migrate_db } from "litevolve-bun"
@@ -87,23 +83,24 @@ import { migrate_db } from "litevolve-bun"
 // Apply migrations up (or down) to reach version 2.
 // Returns the open Bun Database handle.
 const db = migrate_db(
-  2,                    // apply_version: target schema version, or undefined for "latest"
   "./migrations",       // migrations_path: directory holding the .sql files
   "./data/birds.db",    // db_path: SQLite file (or ":memory:")
   true,                 // init_seeds: only honored on a fresh DB at v0
+  2,                    // apply_version: target schema version, or undefined for "latest"
 )
 ```
 
-`migrate_db` is defined per runtime in `runtimes/<runtime>/src/index.ts` — it opens the database,
-sets `journal_mode = WAL` and `foreign_keys = ON`, then delegates to the shared
-`migrate_with_adapter` in `src/core/migrate.ts`. It returns the open handle: a `Database` from
-`bun:sqlite` for the Bun package, a `DatabaseSync` from `node:sqlite` for the Node one. The error
-type is `migration_error` in `src/core/migration_error.ts`.
+`migrate_db` function is defined per runtime in `runtimes/<runtime>/src/index.ts`.
+
+It opens the database, sets `journal_mode = WAL` and `foreign_keys = ON`, then delegates to the shared `migrate_with_adapter` in `src/core/migrate.ts`.
+
+It returns the open handle: a `Database` from `bun:sqlite` for the Bun package, a `DatabaseSync` from `node:sqlite` for the Node one. The error type is `migration_error` in `src/core/migration_error.ts`.
 
 ## CLI_usage
 
-The CLI takes the same four inputs as named flags. `--apply_version` is optional — omit it to
-migrate up to the highest-numbered migration file in `migrations_path`:
+**No binaries are published yet**: CI build is available, but binaries are not published yet. `bunx` and `npx` commands are available.
+
+The CLI takes the same four inputs as named flags. `--apply_version` is optional — omit it to migrate up to the highest-numbered migration file in `migrations_path`:
 
 ```sh
 litevolve \
@@ -130,12 +127,9 @@ make ci_binary TARGET=bun-darwin-arm64   # -> dist/litevolve
 dist/litevolve --apply_version=2 --db_path=./data/birds.db --migrations_path=./migrations
 ```
 
-`make migrate` and `make migrate_seeds` wrap the first form.
-
 ## docker_usage
 
-**No image is published yet** — `scripts/Dockerfile` builds the multi-arch binaries but nothing
-pushes it to a registry. The intended usage, once it is:
+**No image is published yet** — `scripts/Dockerfile` builds the multi-arch binaries but nothing pushes it to a registry. The intended usage, once it is:
 
 To run migrations during a Docker build without installing litevolve's runtime in your image, copy the binary from the official image in a multi-stage build:
 
@@ -178,20 +172,17 @@ Breakdown:
 | `.down.sql`    | down               | when target < N ≤ current_version    |
 | `.seed.sql`    | up + init_seeds    | optional, same transaction as `.sql` |
 
-Files that do not match the regex **throw** a `migration_error` and abort the run — the directory is
-read non-recursively and every entry in it must be a migration. Keep auxiliary files (notes,
-fixtures, sub-directories) out of the migrations directory, including `README.md`.
+Files that do not match the regex **throw** a `migration_error` and abort the run — the directory is read non-recursively and every entry in it must be a migration. Keep auxiliary files (notes, fixtures, sub-directories) out of the migrations directory, including `README.md`.
 
 **Sort order is numeric after stripping leading zeros**, not lexicographic. `0999_x.sql` sorts before `01000_y.sql` because `parseInt("0999")` is `999` and `parseInt("01000")` is `1000`. Padding is optional and its width can vary across migrations without breaking the order: `1_…`, `0042_…`, `0999_…`, `01000_…` all sort correctly together, and an unpadded `42_…` sorts identically to `0042_…`.
 
 Valid examples: `0001_create_initial_schema.sql`, `1234_create_users_table.sql`, `0042_add_users_language_column.down.sql`, `01000_split_audit_log.seed.sql`, `0004_iso8601_timestamps.down.sql`.
+
 Invalid: `0000_foo.sql` (no non-zero digit), `0_foo.sql` (version 0), `0001-foo.sql` (hyphen not allowed), `0001_foo.txt` (wrong extension).
 
 Notes about the parser (see `run_sql_statements` in `runtimes/bun/src/core/migrate.ts`):
 
-- Line comments `-- …` are stripped, then the file is split on `;` and each statement is run on its
-  own — `bun:sqlite` only surfaces the error of the *last* statement in a multi-statement string, so
-  a batched migration could silently COMMIT past a failure
+- Line comments `-- …` are stripped, then the file is split on `;` and each statement is run on its own — `bun:sqlite` only surfaces the error of the *last* statement in a multi-statement string, so a batched migration could silently COMMIT past a failure
 - The splitter is deliberately naive: no `;` or `--` inside string literals, no `BEGIN … END` triggers
 - Down migrations never apply seeds. Each `.down.sql` is responsible for its own data cleanup before dropping columns or tables
 
@@ -209,7 +200,8 @@ The `migrations/working/` directory in this repository ships a runnable three-ve
   - `time_slots (id, site_id, starts_at, ends_at, reserved)`
   - `sightings (id, birder_id, site_id, species_common_name, observed_at, status)`
 
-  Optional seed populates 3 sites, 8 birders (Alice Johnson, Bob Smith, …), 32 two-hour observation windows, and 3 sightings (`pending` / `verified` / `rejected`).
+Optional seed populates 3 sites, 8 birders (Alice Johnson, Bob Smith, …), 32 two-hour observation windows, and 3 sightings (`pending` / `verified` / `rejected`).
+
 - **v2** (`0002_expand_schema.sql`) — adds richer metadata via `ALTER TABLE ADD COLUMN` and creates two intake tables:
   - `observation_sites` gains `latitude`, `longitude`, `habitat_type`, `timezone`.
   - `birders` gains `email`, `skill_level`, `favorite_species`, `timezone`.
@@ -217,18 +209,19 @@ The `migrations/working/` directory in this repository ships a runnable three-ve
   - `sightings` gains `species_scientific_name`, `individual_count`.
   - New tables `incoming_reports (id, source, raw_payload, received_at)` and `incoming_reports_archive (…, archived_at)`.
 
-  Optional seed back-fills coordinates, skill levels, scientific names, weather notes, and sets `timezone = 'America/New_York'` for Central Park, Alice, and Bob.
+Optional seed back-fills coordinates, skill levels, scientific names, weather notes, and sets `timezone = 'America/New_York'` for Central Park, Alice, and Bob.
+
 - **v3** (`0003_add_birder_mentors.sql`) — adds `mentor_birder_id TEXT REFERENCES birders(id)` to `birders` (a self-referential FK). Optional seed marks Alice as the mentor of Carol/Dan/Eve and Bob as the mentor of Frank/Grace.
 
-  The down migration demonstrates the **NULL-before-drop pattern** for foreign-key removal:
+The down migration demonstrates the **NULL-before-drop pattern** for foreign-key removal:
 
-  ```sql
-  -- 0003_add_birder_mentors.down.sql
-  UPDATE birders SET mentor_birder_id = NULL;
-  ALTER TABLE birders DROP COLUMN mentor_birder_id;
-  ```
+```sql
+-- 0003_add_birder_mentors.down.sql
+UPDATE birders SET mentor_birder_id = NULL;
+ALTER TABLE birders DROP COLUMN mentor_birder_id;
+```
 
-  Clearing the FK values first is the right habit even when `DROP COLUMN` would also strip the inline `REFERENCES` constraint — it's the pattern you must use when removing a FK constraint *while keeping the column*, since SQLite has no `ALTER TABLE DROP CONSTRAINT` and the alternative is a `CREATE TABLE … / INSERT SELECT / DROP / RENAME` table-rebuild that would otherwise copy stale references into the new table.
+Clearing the FK values first is the right habit even when `DROP COLUMN` would also strip the inline `REFERENCES` constraint — it's the pattern you must use when removing a FK constraint *while keeping the column*, since SQLite has no `ALTER TABLE DROP CONSTRAINT` and the alternative is a `CREATE TABLE … / INSERT SELECT / DROP / RENAME` table-rebuild that would otherwise copy stale references into the new table.
 
 Drive it from the Makefile:
 
@@ -237,8 +230,7 @@ make migrate_seeds DB_PATH=./birds.db VERSION=2 MIGRATIONS_PATH=./migrations/wor
 sqlite3 ./birds.db "SELECT name, timezone FROM observation_sites;"
 ```
 
-`MIGRATIONS_PATH` is required here: it defaults to the repository root, which holds no migrations
-and would throw on the first non-matching filename.
+`MIGRATIONS_PATH` is required here: it defaults to the repository root, which holds no migrations and would throw on the first non-matching filename.
 
 ## repository_layout
 
@@ -248,9 +240,25 @@ runtimes/node/    litevolve-node  — generated src/core, plus the node:sqlite a
 migrations/       working/ example database, broken/ fixture used by the test suite
 scripts/          every CI step, as plain shell — the Makefile only calls into these
                   (plus check_bun_version.sh, which is local-only)
+examples/         useful examples on how to use the library in Bun, Node, and Deno
 ```
 
-## release_process
+## contributing_guidelines
+
+Refer to [Makefile](./Makefile) for a comprehensive list of available helping commands. `make ci_checks` runs everything CI does, plus `make check_version` — which checks your installed Bun against `.bun-version` and has no CI equivalent, since CI installs Bun *from* that file.
+
+- OSX is recommended for development
+  - if you have any experience contributing to this library under Linux please share your setup
+- `litevolve` basic ecosystem is Bun, so you need Bun installed in your machine, possibly to the [.bun-version](.bun-version) version
+- a fix to `src/core` goes into `runtimes/bun` and reaches the others through `make align_artifacts`
+  — editing a generated copy directly will fail `make ci_check_align`
+- dependency and toolchain versions are Renovate's job
+- the `engines` field is a **floor**: the oldest runtime the package supports, not the version we build with. It is raised by hand, only when a breaking change raises the real minimum
+- Makefile approach is opinionated (sorry)
+- Use any editor but don't push any related configuration of it, keep it in your machine
+  - I currently use [Helix editor](https://helix-editor.com/)
+
+### release_process
 
 Versions are driven by [changesets](https://changesets.dev), one project per runtime.
 
@@ -265,29 +273,7 @@ make yield_new_version
 git push --follow-tags
 ```
 
-The tag is what publishes. `.github/workflows/publish.yml` triggers on
-`litevolve-{bun,node}@*` tags, refuses any tag that is not an ancestor of `main`, re-checks the
-tag against `package.json`, then builds, tests, packs and publishes that one package to npm with
-[trusted publishing](https://docs.npmjs.com/trusted-publishers) and a provenance attestation.
-
-## contributing_guidelines
-
-Refer to [Makefile](./Makefile) for a comprehensive list of available helping commands.
-`make ci_checks` runs everything CI does, plus `make check_version` — which checks your
-installed Bun against `.bun-version` and has no CI equivalent, since CI installs Bun *from*
-that file.
-
-- OSX is recommended for development
-  - if you have any experience contributing to this library under Linux please share your setup
-- `litevolve` basic ecosystem is Bun, so you need Bun installed in your machine, possibly to the [.bun-version](.bun-version) version
-- a fix to `src/core` goes into `runtimes/bun` and reaches the others through `make align_artifacts`
-  — editing a generated copy directly will fail `make ci_check_align`
-- dependency and toolchain versions are Renovate's job
-- the `engines` field is a **floor**: the oldest runtime the package supports, not the version
-  we build with. It is raised by hand, only when a breaking change raises the real minimum
-- Makefile approach is opinionated (sorry)
-- Use any editor but don't push any related configuration of it, keep it in your machine
-  - I currently use [Helix editor](https://helix-editor.com/)
+The tag is what publishes. `.github/workflows/publish.yml` triggers on `litevolve-{bun,node}@*` tags, refuses any tag that is not an ancestor of `main`, re-checks the tag against `package.json`, then builds, tests, packs and publishes that one package to npm with [trusted publishing](https://docs.npmjs.com/trusted-publishers) and a provenance attestation.
 
 ## license
 
