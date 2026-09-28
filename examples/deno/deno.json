@@ -5,6 +5,6 @@
     "typecheck": "deno check main.ts"
   },
   "imports": {
-    "litevolve-node": "npm:litevolve-node@0.2.2"
+    "litevolve-node": "npm:litevolve-node@0.3.0"
   }
 }

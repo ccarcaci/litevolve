@@ -6,7 +6,7 @@ PKG := litevolve-bun
 
 # ponytail: teardown is a recipe step, not a prerequisite — make runs a prereq
 # only once, so listing `down` twice would skip the final stop
-run: check_version up install migrate run_bin
+run: check_version up install help migrate run_bin
 	$(MAKE) down
 
 # ponytail: host-side, no container needed — the pin in package.json is what we compare
@@ -28,6 +28,9 @@ install:
 
 migrate:
 	docker exec $(CONTAINER) bun index.ts
+
+help:
+	docker exec $(CONTAINER) bun x litevolve-bun --help
 
 run_bin:
 	docker exec $(CONTAINER) bun x litevolve-bun \
