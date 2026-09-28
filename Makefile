@@ -1,7 +1,7 @@
 # litevolve: SQLite migration runner
 
 BUN          := bun
-BIOME        := bunx biome
+BIOME        := bun x biome
 MAKEFILE_DIR := $(dir $(abspath $(lastword $(MAKEFILE_LIST))))
 
 # Workspace layout
@@ -16,7 +16,7 @@ SCRIPTS_DIR := $(MAKEFILE_DIR)scripts
 # Required: provide when calling make
 DB_PATH         ?=
 VERSION         ?=
-MIGRATIONS_PATH ?= $(MAKEFILE_DIR)
+MIGRATIONS_PATH ?= $(MAKEFILE_DIR)migrations/working
 
 ##@ litevolve - SQLite migration runner
 ##@ usage: make [target] DB_PATH=<path> VERSION=<n>
@@ -68,7 +68,7 @@ yield_version: ## bump versions from changeset files (node + bun), commit and ta
 		echo "versioning node..."; cd $(RUNTIMES_DIR)/node && npx changeset version; cd $(MAKEFILE_DIR); \
 	else echo "node: no changeset, skipping"; fi
 	@if ls $(BUN_CHANGESET_DIR)/*.md 2>/dev/null | grep -qv README.md; then \
-		echo "versioning bun..."; cd $(RUNTIMES_DIR)/bun && bunx changeset version; cd $(MAKEFILE_DIR); \
+		echo "versioning bun..."; cd $(RUNTIMES_DIR)/bun && bun x changeset version; cd $(MAKEFILE_DIR); \
 	else echo "bun: no changeset, skipping"; fi
 
 # tag name and version both come from package.json, so they cannot drift from what

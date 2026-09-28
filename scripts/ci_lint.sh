@@ -6,5 +6,5 @@
 set -e
 
 echo "check linting"
-bunx biome check runtimes/
+bun x biome check runtimes/
 echo "check linting done"
