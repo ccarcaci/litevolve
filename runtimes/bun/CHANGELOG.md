@@ -1,5 +1,21 @@
 # litevolve-bun
 
+## 0.2.3
+
+### Patch Changes
+
+- - feat(cli): add --help flag and strict argument validation
+  - chore: sync bun.lock with @types/node 26.6.3 and drop stray package-lock.json
+  - chore: refresh README comparison stats and add @types/node to bun devDependencies
+  - renovate/ Update dependency @biomejs/biome to v2.5.14
+  - renovate/ Update dependency @changesets/cli to v3.0.3
+  - renovate/ Update dependency @biomejs/biome to v2.5.13
+  - renovate/ Update dependency @types/bun to v1.4.2
+  - renovate/ Update dependency @types/bun to v1.4.1
+  - renovate/ Update dependency @changesets/cli to v3.0.2
+  - renovate/ Update dependency @biomejs/biome to v2.5.12
+  - docs: reorganize README sections and align migrate_db arg order with implementation
+
 ## 0.2.2
 
 ### Patch Changes
