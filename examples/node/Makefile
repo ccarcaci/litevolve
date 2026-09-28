@@ -6,7 +6,7 @@ PKG := litevolve-node
 
 # ponytail: teardown is a recipe step, not a prerequisite — make runs a prereq
 # only once, so listing `down` twice would skip the final stop
-run: check_version up install typecheck migrate run_bin
+run: check_version up install typecheck help migrate run_bin
 	$(MAKE) down
 
 # ponytail: host-side, no container needed — the pin in package.json is what we compare
@@ -31,6 +31,9 @@ typecheck:
 
 migrate:
 	docker exec $(CONTAINER) node index.ts
+
+help:
+	docker exec $(CONTAINER) npx litevolve-node --help
 
 run_bin:
 	docker exec $(CONTAINER) npx --yes litevolve-node \
