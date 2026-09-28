@@ -1,5 +1,21 @@
 # litevolve-node
 
+## 0.2.3
+
+### Patch Changes
+
+- - feat(cli): add --help flag and strict argument validation
+  - chore: refresh README comparison stats and add @types/node to bun devDependencies
+  - renovate/ Update dependency @types/node to v26.6.3
+  - renovate/ Update dependency @types/node to v26.6.2
+  - renovate/ Update dependency @types/node to v26.6.1
+  - renovate/ Update dependency @changesets/cli to v3.0.3
+  - renovate/ Update dependency @types/node to v26.5.1
+  - renovate/ Update dependency @types/node to v26.5.0
+  - renovate/ Update dependency @changesets/cli to v3.0.2
+  - renovate/ Update dependency @types/node to v26.4.1
+  - docs: reorganize README sections and align migrate_db arg order with implementation
+
 ## 0.2.2
 
 ### Patch Changes

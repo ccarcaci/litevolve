@@ -23,7 +23,7 @@ Options:
 
 const cli_error = (cause_message: string) => {
   process.stdout.write(cause_message)
-  process.exit(0)
+  process.exit(-1)
 }
 
 const read_cli_values = () => {
@@ -41,6 +41,7 @@ const read_cli_values = () => {
   } catch (error) {
     // unknown flag, missing flag value, or stray positional argument
     cli_error((error as Error).message)
+    // avoid typing error on return value
     return {}
   }
 }
