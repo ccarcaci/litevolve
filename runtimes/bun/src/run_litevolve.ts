@@ -1,7 +1,6 @@
 #!/usr/bin/env bun
 import { parseArgs } from "node:util"
 import { migrate_db } from "./index"
-import { migration_error } from "./core"
 
 type migration_configs_type = {
   init_seeds: boolean
@@ -10,50 +9,68 @@ type migration_configs_type = {
   apply_version?: number
 }
 
+const usage = `Usage: litevolve --db_path=<path> --migrations_path=<dir> [options]
+
+Required:
+  --db_path=<path>          SQLite database file (created if missing)
+  --migrations_path=<dir>   Directory containing migration files
+
+Options:
+  --apply_version=<n>       Target schema version, up or down (default: highest migration found)
+  --init_seeds              Apply seed files; only settable on a fresh (v0) database
+  --help                    Show this help
+`
+
+const cli_error = (cause_message: string) => {
+  process.stdout.write(cause_message)
+  process.exit(0)
+}
+
+const read_cli_values = () => {
+  try {
+    return parseArgs({
+      args: process.argv.slice(2),
+      options: {
+        init_seeds: { type: "boolean" },
+        apply_version: { type: "string" },
+        db_path: { type: "string" },
+        migrations_path: { type: "string" },
+        help: { type: "boolean" },
+      },
+    }).values
+  } catch (error) {
+    // unknown flag, missing flag value, or stray positional argument
+    cli_error((error as Error).message)
+    return {}
+  }
+}
+
 const parse_cli_args = (): migration_configs_type => {
-  const { values } = parseArgs({
-    args: process.argv.slice(2),
-    options: {
-      init_seeds: { type: "boolean" },
-      apply_version: { type: "string" },
-      db_path: { type: "string" },
-      migrations_path: { type: "string" },
-    },
-    strict: false,
-  })
+  const values = read_cli_values()
 
-  const missing: string[] = []
+  if (values.help) {
+    process.stdout.write(usage)
+    process.exit(0)
+  }
 
-  const required = (key: string): string => {
-    const value = values[key]
-    if (!value) {
-      missing.push(`--${key}`)
-      return ""
-    }
-    if (typeof value !== "string") return ""
-    return value
+  const missing = (["db_path", "migrations_path"] as const)
+    .filter((key) => !values[key])
+    .map((key) => `--${key}`)
+  if (missing.length > 0) {
+    cli_error(`missing required CLI args: ${missing.join(", ")}`)
   }
 
   const apply_version_raw = values.apply_version
-  const apply_version =
-    typeof apply_version_raw === "string" ? parseInt(apply_version_raw, 10) : undefined
-
-  const configs: migration_configs_type = {
-    init_seeds: (values.init_seeds as boolean | undefined) ?? false,
-    db_path: required("db_path"),
-    migrations_path: required("migrations_path"),
-    apply_version,
+  if (apply_version_raw !== undefined && !/^\d+$/.test(apply_version_raw)) {
+    cli_error(`--apply_version must be a non-negative integer, got "${apply_version_raw}"`)
   }
 
-  if (missing.length > 0) {
-    throw new migration_error(
-      "src/db_migrations/run_migration",
-      "parse_cli_args",
-      `missing required CLI args: ${missing.join(", ")}`,
-    )
+  return {
+    init_seeds: values.init_seeds ?? false,
+    db_path: values.db_path as string,
+    migrations_path: values.migrations_path as string,
+    apply_version: apply_version_raw === undefined ? undefined : Number(apply_version_raw),
   }
-
-  return configs
 }
 
 //  --

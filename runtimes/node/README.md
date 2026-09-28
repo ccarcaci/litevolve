@@ -110,6 +110,8 @@ litevolve \
   --init_seeds
 ```
 
+Run `litevolve --help` (or `-h`) to list the flags.
+
 Each package declares a `litevolve` bin, so it runs via `bunx` / `npx` without installing anything:
 
 ```sh

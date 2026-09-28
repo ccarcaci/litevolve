@@ -30,12 +30,12 @@ migrate:
 	docker exec $(CONTAINER) bun index.ts
 
 run_bin:
-	docker exec $(CONTAINER) bunx litevolve-bun \
+	docker exec $(CONTAINER) bun x litevolve-bun \
 		--apply_version=3 \
 		--db_path=:memory: \
 		--migrations_path=/app/migrations/working \
 		--init_seeds
-	docker exec $(CONTAINER) bunx litevolve-bun \
+	docker exec $(CONTAINER) bun x litevolve-bun \
 		--db_path=:memory: \
 		--migrations_path=/app/migrations/working \
 		--init_seeds
