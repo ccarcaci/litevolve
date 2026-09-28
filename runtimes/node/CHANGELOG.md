@@ -1,5 +1,11 @@
 # litevolve-node
 
+## 0.3.0
+
+### Minor Changes
+
+- `--help` command now available
+
 ## 0.2.3
 
 ### Patch Changes
