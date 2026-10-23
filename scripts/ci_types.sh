@@ -6,6 +6,7 @@
 set -e
 
 FRAMEWORK="$1"
+TSC_NODE_BIN="./runtimes/node/node_modules/.bin/tsc"
 
 echo "TypeScript compilation for $FRAMEWORK"
 case "$FRAMEWORK" in
@@ -13,7 +14,7 @@ case "$FRAMEWORK" in
     bun x tsc --noEmit --project runtimes/bun/tsconfig.json
     ;;
   node)
-    tsc --noEmit --project runtimes/node/tsconfig.json
+    $TSC_NODE_BIN --noEmit --project runtimes/node/tsconfig.json
     ;;
   *)
     echo "Usage: $0 <bun|node>"
