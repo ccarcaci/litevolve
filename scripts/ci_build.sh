@@ -6,6 +6,7 @@
 set -e
 
 FRAMEWORK="$1"
+TSC_NODE_BIN="./runtimes/node/node_modules/.bin/tsc"
 
 echo "$FRAMEWORK build"
 case "$FRAMEWORK" in
@@ -18,7 +19,7 @@ case "$FRAMEWORK" in
     # esbuild bundles src/core into dist/index.js; tsc emits .d.ts only (emitDeclarationOnly in tsconfig)
     esbuild runtimes/node/src/index.ts --bundle --platform=node --format=esm --external:node:* --outfile=runtimes/node/dist/index.js
     esbuild runtimes/node/src/run_litevolve.ts --bundle --platform=node --format=esm --external:node:* --outfile=runtimes/node/dist/run_litevolve.js
-    tsc --project runtimes/node/tsconfig.json
+    $TSC_NODE_BIN --project runtimes/node/tsconfig.json
     ;;
   *)
     echo "Usage: $0 <bun|node>"
