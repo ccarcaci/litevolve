@@ -37,5 +37,5 @@ report.[0-9]_.[0-9]_.[0-9]_.[0-9]_.json
 /graft/
 
 .claude/
-
+.trail/
 .mcp.json
