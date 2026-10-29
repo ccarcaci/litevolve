@@ -19,7 +19,7 @@ README="$REPO_ROOT/README.md"
 
 # same left-to-right order as the README table columns
 NAMES=(litevolve sqlite-auto-migrator deno-nessie drizzle-orm)
-SLUGS=(ccarcaci/litevolve SanderGi/sqlite-auto-migrator halvardssm/deno-nessie drizzle-team/drizzle-orm)
+SLUGS=(ccarcaci/litevolve SanderGi/sqlite-auto-migrator lmxrd/deno-nessie drizzle-team/drizzle-orm)
 # comma-separated npm package names, used as the "latest release" fallback when a
 # tool has no GitHub Release object; empty entry means no fallback (GitHub only)
 NPM_PKGS=("litevolve-bun,litevolve-node" "sqlite-auto-migrator" "" "")
@@ -58,7 +58,12 @@ gh_api() {
   fi
 
   rm -f "$body_file" "$headers_file"
-  [ "${status:0:1}" = "2" ] || return 1
+  if [ "${status:0:1}" != "2" ]; then
+    # status 000 means curl never got a response (DNS, TLS, connection reset)
+    echo "error: GET https://api.github.com/$endpoint -> HTTP $status" >&2
+    jq -r '.message // empty' <<<"$body" 2>/dev/null | sed 's/^/  /' >&2 || true
+    return 1
+  fi
   printf '%s' "$body"
 }
 
@@ -85,15 +90,18 @@ for i in "${!NAMES[@]}"; do
   repo_json=$(gh_api "repos/$slug")
 
   STARS[$i]=$(jq -r '.stargazers_count' <<<"$repo_json")
-  # ponytail: GitHub's open_issues_count includes PRs; a true issues-only count needs
-  # a second, paginated call. Good enough for a README comparison, split out if it matters.
-  ISSUES[$i]=$(jq -r '.open_issues_count' <<<"$repo_json")
+  # not .open_issues_count: the REST API counts open PRs as issues, so every open
+  # Renovate PR would inflate it. The search endpoint filters on is:issue; its
+  # unauthenticated cap is 10 req/min, separate from the core 60/hr.
+  ISSUES[$i]=$(gh_api "search/issues?q=repo:$slug+is:issue+is:open&per_page=1" \
+    | jq -r '.total_count')
 
   default_branch=$(jq -r '.default_branch' <<<"$repo_json")
   COMMIT[$i]=$(gh_api "repos/$slug/commits?sha=$default_branch&per_page=1" \
     | jq -r '.[0].commit.committer.date | split("T")[0]')
 
-  release_json=$(gh_api "repos/$slug/releases/latest" || echo '{}')
+  # a 404 here is expected (no GitHub Release object), so silence gh_api's error
+  release_json=$(gh_api "repos/$slug/releases/latest" 2>/dev/null || echo '{}')
   RELEASE[$i]=$(jq -r '.published_at // "n/a"' <<<"$release_json" | cut -d T -f1)
   if [ "${RELEASE[$i]}" = "n/a" ] && [ -n "${NPM_PKGS[$i]}" ]; then
     RELEASE[$i]=$(npm_latest_date "${NPM_PKGS[$i]}")
